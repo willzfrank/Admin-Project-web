@@ -1,26 +1,47 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { Route, Routes, Navigate } from 'react-router-dom'
+import Dashboard from './page/dashboard/Dashboard'
+import Login from './page/login/Login'
+import {
+  isAuthenticated,
+  ProtectedRoute,
+} from './components/util/ProtectedRoute'
+import { Toaster } from 'react-hot-toast'
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+    <>
+      <Toaster position="top-center" />{' '}
+      <Routes>
+        {/* Public Route */}
+        <Route path="/login" element={<Login />} />
+
+        {/* Protected Routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Redirect to dashboard if authenticated, otherwise to login */}
+        <Route
+          path="/"
+          element={
+            isAuthenticated() ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+
+        {/* Catch-all route for undefined paths */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
+  )
 }
 
-export default App;
+export default App
