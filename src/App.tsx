@@ -6,6 +6,7 @@ import {
   ProtectedRoute,
 } from './components/util/ProtectedRoute'
 import { Toaster } from 'react-hot-toast'
+import UserManagement from './page/user-management/UserManagement'
 
 function App() {
   return (
@@ -21,6 +22,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/user-management"
+          element={
+            <ProtectedRoute>
+              <UserManagement />
             </ProtectedRoute>
           }
         />

@@ -4,7 +4,9 @@
 
 /* INPUT */
 
-.ant-input, .ant-select-selector {
+.ant-input,
+.ant-select-selector,
+.ant-modal-content {
   border-radius: 0 !important;
 }
 
