@@ -1,6 +1,7 @@
 import React, { ReactNode, useEffect, useState } from 'react'
 import { Sidebar, Menu, MenuItem, SubMenu } from 'react-pro-sidebar'
 import { Link } from 'react-router-dom'
+import Navbar from '../components/Navbar'
 
 interface SidebarLayoutProps {
   children: ReactNode
@@ -34,7 +35,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
     <div className="flex h-full">
       {/* Sidebar Container */}
       <div
-        className={`h-full overflow-y-auto ${
+        className={`h-full overflow-y-auto scrollbar-hidden ${
           isMobile ? 'w-[26%]' : collapsed ? 'w-[80px]' : 'w-[20%]'
         }`}
       >
@@ -89,19 +90,6 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                 </div>
               )}
             </MenuItem>
-
-            {/* User Profile */}
-            {(!collapsed || isMobile) && (
-              <div className="mb-[25px] text-center">
-                <img
-                  alt="profile-user"
-                  src="https://st3.depositphotos.com/7865540/13292/i/1600/depositphotos_132922972-stock-photo-view-of-tablet-with-icons.jpg"
-                  className="rounded w-[100px] h-auto mx-auto"
-                />
-                <h2 className="font-bold mt-[10px]">Hi, Admin</h2>
-                <h5>Project Builder Admin</h5>
-              </div>
-            )}
 
             {/* Menu Items */}
             <MenuItem
@@ -162,9 +150,10 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
             ? 'w-full '
             : collapsed
             ? 'w-[calc(100%-80px)] px-10'
-            : 'w-[80%] px-6'
+            : 'w-[80%]'
         }`}
       >
+        <Navbar />
         {children}
       </main>
     </div>

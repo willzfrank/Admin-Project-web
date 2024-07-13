@@ -139,10 +139,14 @@ const Dashboard: React.FC = () => {
         new Date(a.dateCreated).getTime() - new Date(b.dateCreated).getTime(),
     },
     {
-      title: 'Action',
+      title: () => <div style={{ textAlign: 'center' }}>Action</div>,
       key: 'action',
       render: (_: any, record: RoleData) => (
-        <Space size="middle">
+        <Space
+          size="middle"
+          direction="vertical"
+          className="flex items-center justify-center"
+        >
           <Button
             type="link"
             onClick={() => handlePermissions(record.roleName)}

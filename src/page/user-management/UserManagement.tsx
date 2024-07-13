@@ -282,7 +282,7 @@ const UserManagement: React.FC = () => {
 
   return (
     <SidebarLayout>
-      <div className="mt-10 px-6">
+      <div className="mt-10 px-6 md:px-0">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
             User Management
@@ -291,7 +291,7 @@ const UserManagement: React.FC = () => {
             Manage system users and their access levels
           </p>
         </div>
-        <div className="bg-white shadow-md rounded-lg p-6">
+        <div className=" shadow rounded-lg p-6">
           <div className="flex justify-between items-center mb-4">
             <Input
               placeholder="Search users"
