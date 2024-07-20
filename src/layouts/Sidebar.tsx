@@ -1,5 +1,5 @@
 import React, { ReactNode, useEffect, useState } from 'react'
-import { Sidebar, Menu, MenuItem, SubMenu } from 'react-pro-sidebar'
+import { Sidebar, Menu, MenuItem } from 'react-pro-sidebar'
 import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 
@@ -17,7 +17,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
       setIsMobile(window.innerWidth < 768)
     }
 
-    handleResize() // Check initial size
+    handleResize()
     window.addEventListener('resize', handleResize)
 
     return () => {
@@ -37,7 +37,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
       <div
         className={`h-full overflow-y-auto scrollbar-hidden ${
           isMobile ? 'w-[26%]' : collapsed ? 'w-[80px]' : 'w-[20%]'
-        }`}
+        } sticky top-0 z-10`}
       >
         <Sidebar
           collapsed={isMobile ? true : collapsed}
@@ -93,7 +93,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
 
             {/* Menu Items */}
             <MenuItem
-              component={<Link to="/" />}
+              component={<Link to="/dashboard" />}
               icon={
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -150,7 +150,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
             ? 'w-full '
             : collapsed
             ? 'w-[calc(100%-80px)] px-10'
-            : 'w-[80%]'
+            : 'w-[95%]'
         }`}
       >
         <Navbar />

@@ -35,28 +35,10 @@ axiosInstance.interceptors.request.use(
 )
 
 // Response interceptor
-// Response interceptor
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
-    // Prevent redirect loop by checking the current URL
-    const currentPath = window.location.pathname
-    if (currentPath === '/login' && error.response?.status === 401) {
-      toast.error('Login failed. Please try again.')
-      return Promise.reject(error)
-    }
-
     handleError(error)
-    // Clear user and auth data from local storage on error
-    localStorage.removeItem('auth')
-    localStorage.removeItem('user')
-
-    // Avoid redirect if already on the login page
-    if (currentPath !== '/login') {
-      setTimeout(() => {
-        window.location.replace('/login')
-      }, 500)
-    }
     return Promise.reject(error)
   }
 )
@@ -65,19 +47,24 @@ function handleError(error: AxiosError) {
   if (error.response) {
     switch (error.response.status) {
       case 401:
-        // Check if the current path is not login to avoid loops
-        if (window.location.pathname !== '/login') {
-          handleAuthError('Your session has expired. Please log in again.')
-        }
+        handleAuthError('Your session has expired. Please log in again.')
         break
       case 403:
-        handleAuthError('You do not have permission to access this resource.')
+        toast.error('You do not have permission to access this resource.')
+        break
+      case 404:
+        toast.error('The requested resource was not found.')
+        break
+      case 500:
+        toast.error(
+          'An internal server error occurred. Please try again later.'
+        )
         break
       default:
         toast.error('An error occurred. Please try again later.')
     }
   } else if (error.request) {
-    console.error(
+    toast.error(
       'No response received from the server. Please check your internet connection.'
     )
   } else {
@@ -94,6 +81,7 @@ function handleAuthError(message: string) {
     duration: 5000,
     position: 'top-center',
   })
+
   // Only redirect if not already on the login page
   if (window.location.pathname !== '/login') {
     setTimeout(() => {

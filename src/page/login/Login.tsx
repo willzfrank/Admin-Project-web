@@ -31,10 +31,10 @@ const Login: React.FC<Props> = () => {
         toast.error(errorMessage)
       } else {
         // If status is true, proceed with login
-        const { userId, token, companyId, roleName } = response.data.data
+        const { userId, token, companyId } = response.data.data
 
         // Check if the role is Supervisor
-        if (roleName !== 'Supervisor') {
+        if (companyId !== null) {
           toast.error(
             'You do not have the required permissions to access this application.'
           )

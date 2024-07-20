@@ -1,27 +1,19 @@
-import React, { useState, useEffect } from 'react'
-import {
-  Table,
-  Spin,
-  Button,
-  Input,
-  Space,
-  Modal,
-  message,
-  Form,
-  Select,
-} from 'antd'
+import React, { useState, useEffect, useCallback } from 'react'
+import { Spin, Input, message } from 'antd'
 import {
   LoadingOutlined,
   SearchOutlined,
   PlusOutlined,
 } from '@ant-design/icons'
 import SidebarLayout from '../../layouts/Sidebar'
+import axiosInstance from '../../components/util/AxiosInstance'
+import RoleTable from '../../components/RoleTable'
+import RoleModal from '../../components/Modals/RoleModal'
+import PermissionModal from '../../components/Modals/PermissionModal'
 
-// Define the interface for our data
 interface RoleData {
   key: string
   roleName: string
-  description: string
   dateCreated: string
   permissions: string[]
 }
@@ -35,172 +27,146 @@ const Dashboard: React.FC = () => {
   const [selectedRole, setSelectedRole] = useState<RoleData | null>(null)
   const [isPermissionModalVisible, setIsPermissionModalVisible] =
     useState(false)
-  const [form] = Form.useForm()
-  const [permissionForm] = Form.useForm()
+  const [isCreatingRole, setIsCreatingRole] = useState(false)
+  const [availablePermissions, setAvailablePermissions] = useState<string[]>([])
+  const [isLoadingPermissions, setIsLoadingPermissions] = useState(false)
+  const [isUpdatingPermissions, setIsUpdatingPermissions] = useState(false)
 
-  useEffect(() => {
-    // Simulating API call
-    setTimeout(() => {
-      setData([
-        {
-          key: '1',
-          roleName: 'Owner',
-          description: 'Full system access and control',
-          dateCreated: '06-JUN-2024 11:05 PM',
-          permissions: ['Create', 'Read', 'Update', 'Delete', 'Manage Users'],
-        },
-        {
-          key: '2',
-          roleName: 'Admin',
-          description: 'System administration and user management',
-          dateCreated: '01-MAR-2024 08:32 AM',
-          permissions: ['Create', 'Read', 'Update', 'Delete'],
-        },
-        {
-          key: '3',
-          roleName: 'SysAdmin',
-          description: 'Advanced system configuration and maintenance',
-          dateCreated: '28-NOV-2023 10:16 AM',
-          permissions: ['Read', 'Update', 'System Config'],
-        },
-      ])
+  const fetchRoles = useCallback(async () => {
+    try {
+      const response = await axiosInstance.get('/Roles/List')
+      if (response.data.status && Array.isArray(response.data.data)) {
+        const rolesData: RoleData[] = response.data.data.map(
+          (roleName: string, index: number) => ({
+            key: index.toString(),
+            roleName,
+            dateCreated: '01-JAN-2024 00:00 AM',
+            permissions: [],
+          })
+        )
+        setData(rolesData)
+      } else {
+        setError('Failed to fetch roles data')
+      }
+    } catch (error) {
+      setError('An error occurred while fetching roles')
+      console.error('Error fetching roles:', error)
+    } finally {
       setIsLoading(false)
-    }, 1000)
+    }
   }, [])
 
-  const handlePermissions = (roleName: string) => {
+  const fetchPermissions = useCallback(async () => {
+    setIsLoadingPermissions(true)
+    try {
+      const response = await axiosInstance.get('/Claims/List')
+      if (response.data.status && Array.isArray(response.data.data)) {
+        setAvailablePermissions(response.data.data)
+      } else {
+        console.error('Failed to fetch permissions')
+      }
+    } catch (error) {
+      console.error('Error fetching permissions:', error)
+    } finally {
+      setIsLoadingPermissions(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchRoles()
+    fetchPermissions()
+  }, [fetchRoles, fetchPermissions])
+
+  const handlePermissions = async (roleName: string) => {
     const role = data.find((r) => r.roleName === roleName)
     if (role) {
       setSelectedRole(role)
-      permissionForm.setFieldsValue({
-        roleName: role.roleName,
-        permissions: role.permissions,
-      })
-      setIsPermissionModalVisible(true)
+      try {
+        const response = await axiosInstance.get(
+          `/Claims/GetByRole?roleName=${encodeURIComponent(roleName)}`
+        )
+        if (response.data.status && Array.isArray(response.data.data)) {
+          setSelectedRole({
+            ...role,
+            permissions: response.data.data,
+          })
+          setIsPermissionModalVisible(true)
+        } else {
+          console.error('Failed to fetch role permissions')
+        }
+      } catch (error) {
+        console.error('Error fetching role permissions:', error)
+      }
     }
   }
 
-  const handlePermissionUpdate = () => {
-    permissionForm.validateFields().then((values) => {
-      const updatedData = data.map((role) =>
-        role.key === selectedRole?.key
-          ? {
-              ...role,
-              roleName: values.roleName,
-              permissions: values.permissions,
-            }
-          : role
-      )
-      setData(updatedData)
-      message.success(`Role "${values.roleName}" has been updated.`)
-      setIsPermissionModalVisible(false)
-    })
+  const handlePermissionUpdate = async (values: any) => {
+    try {
+      setIsUpdatingPermissions(true)
+      const response = await axiosInstance.post('/Claims/AddToRole', {
+        roleName: values.roleName,
+        claims: values.permissions,
+      })
+
+      if (response.data.status) {
+        message.success(
+          response.data.message ||
+            `Permissions for "${values.roleName}" have been updated.`
+        )
+        setIsPermissionModalVisible(false)
+        fetchRoles() // Refresh the roles list
+      } else {
+        message.error(
+          response.data.message ||
+            'Failed to update permissions. Please try again.'
+        )
+      }
+    } catch (error) {
+      console.error('Error updating permissions:', error)
+      message.error('Failed to update permissions. Please try again.')
+    } finally {
+      setIsUpdatingPermissions(false)
+    }
   }
 
   const handleDelete = (roleName: string) => {
-    Modal.confirm({
-      title: 'Are you sure you want to delete this role?',
-      content: `This will permanently delete the ${roleName} role.`,
-      okText: 'Delete',
-      okType: 'danger',
-      okButtonProps: {
-        style: {
-          backgroundColor: 'red',
-          borderColor: 'red',
-          color: 'white',
-        },
-      },
-      onOk() {
-        setData(data.filter((role) => role.roleName !== roleName))
-        message.success(`${roleName} role has been deleted.`)
-      },
-      onCancel() {},
-    })
+    setData(data.filter((role) => role.roleName !== roleName))
+    message.success(`${roleName} role has been deleted.`)
   }
 
-  const columns = [
-    {
-      title: 'Role Name',
-      dataIndex: 'roleName',
-      key: 'roleName',
-      sorter: (a: RoleData, b: RoleData) =>
-        a.roleName.localeCompare(b.roleName),
-    },
-    {
-      title: 'Description',
-      dataIndex: 'description',
-      key: 'description',
-    },
-    {
-      title: 'Date Created',
-      dataIndex: 'dateCreated',
-      key: 'dateCreated',
-      sorter: (a: RoleData, b: RoleData) =>
-        new Date(a.dateCreated).getTime() - new Date(b.dateCreated).getTime(),
-    },
-    {
-      title: () => <div style={{ textAlign: 'center' }}>Action</div>,
-      key: 'action',
-      render: (_: any, record: RoleData) => (
-        <Space
-          size="middle"
-          direction="vertical"
-          className="flex items-center justify-center"
-        >
-          <Button
-            type="link"
-            onClick={() => handlePermissions(record.roleName)}
-          >
-            Permissions
-          </Button>
-          <Button
-            type="link"
-            danger
-            onClick={() => handleDelete(record.roleName)}
-          >
-            Delete
-          </Button>
-        </Space>
-      ),
-    },
-  ]
-
-  const filteredData = data.filter(
-    (item) =>
-      item.roleName.toLowerCase().includes(searchText.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchText.toLowerCase())
-  )
-
-  const showModal = () => {
+  const handleAddRole = () => {
     setIsModalVisible(true)
   }
 
-  const handleCancel = () => {
-    setIsModalVisible(false)
-    form.resetFields()
+  const handleProceed = async (roleName: string) => {
+    try {
+      setIsCreatingRole(true)
+      const response = await axiosInstance.get(
+        `/Roles/Create?roleName=${encodeURIComponent(roleName)}`
+      )
+      if (response.data.status) {
+        message.success(
+          response.data.message || `New role "${roleName}" has been created.`
+        )
+        setIsModalVisible(false)
+        fetchRoles() // Refresh the roles list
+      } else {
+        message.error(
+          response.data.message ||
+            'Failed to create new role. Please try again.'
+        )
+      }
+    } catch (error) {
+      console.error('Error creating role:', error)
+      message.error('Failed to create new role. Please try again.')
+    } finally {
+      setIsCreatingRole(false)
+    }
   }
 
-  const handleProceed = () => {
-    form
-      .validateFields()
-      .then((values) => {
-        // Here you would typically send this data to your backend
-        const newRole: RoleData = {
-          key: (data.length + 1).toString(),
-          roleName: values.roleName,
-          description: values.description,
-          dateCreated: new Date().toLocaleString(),
-          permissions: [], // Default empty permissions
-        }
-        setData([...data, newRole])
-        message.success(`New role "${values.roleName}" has been created.`)
-        setIsModalVisible(false)
-        form.resetFields()
-      })
-      .catch((info) => {
-        console.log('Validate Failed:', info)
-      })
-  }
+  const filteredData = data.filter((item) =>
+    item.roleName.toLowerCase().includes(searchText.toLowerCase())
+  )
 
   return (
     <SidebarLayout>
@@ -221,175 +187,56 @@ const Dashboard: React.FC = () => {
               onChange={(e) => setSearchText(e.target.value)}
               style={{ width: 200 }}
             />
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              // onClick={handleAddRole}
-              onClick={showModal}
+            <button
+              type="button"
+              onClick={handleAddRole}
               style={{
                 backgroundColor: 'white',
                 color: 'black',
                 border: '1px solid black',
                 borderRadius: 0,
+                padding: '5px 10px',
               }}
             >
-              Add New Role
-            </Button>
+              <PlusOutlined /> Add New Role
+            </button>
           </div>
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
               <Spin
                 indicator={<LoadingOutlined spin />}
-                className="text-blue-500"
+                className="text-black"
                 size="large"
               />
             </div>
           ) : error ? (
             <p className="text-red-500 text-center">{error}</p>
           ) : (
-            <Table
-              columns={columns}
-              dataSource={filteredData}
-              pagination={{ position: ['bottomRight'], pageSize: 10 }}
-              scroll={{ x: 800 }}
+            <RoleTable
+              data={filteredData}
+              handlePermissions={handlePermissions}
+              handleDelete={handleDelete}
             />
           )}
         </div>
       </div>
-      {/* CREATE NEW ROLE MODAL */}
-      <Modal
-        title="Create New Role"
-        visible={isModalVisible}
-        onCancel={handleCancel}
-        footer={null}
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="roleName"
-            label="Role Name"
-            required
-            rules={[{ required: true, message: 'Please input the role name!' }]}
-            className="rounded-0"
-          >
-            <Input placeholder="Enter role name" />
-          </Form.Item>
-          <Form.Item
-            name="description"
-            label="Description"
-            required
-            rules={[
-              { required: true, message: 'Please input the role description!' },
-            ]}
-          >
-            <Input.TextArea rows={4} placeholder="Provide role description" />
-          </Form.Item>
-          <Form.Item>
-            <div className="flex justify-end space-x-4">
-              <Button
-                onClick={handleCancel}
-                style={{
-                  borderColor: 'black',
-                  color: 'black',
-                  borderRadius: 0,
-                }}
-              >
-                Close
-              </Button>
-              <Button
-                onClick={handleProceed}
-                style={{
-                  backgroundColor: 'black',
-                  color: 'white',
-                  borderRadius: 0,
-                }}
-              >
-                Proceed
-              </Button>
-            </div>
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* PERMISSIONS MODAL */}
-      <Modal
-        title="Update Permissions"
-        visible={isPermissionModalVisible}
-        onCancel={() => setIsPermissionModalVisible(false)}
-        footer={null}
-      >
-        <Form form={permissionForm} layout="vertical">
-          <Form.Item
-            name="roleName"
-            label="Role Name"
-            rules={[
-              { required: true, message: 'Role name is required!' },
-              {
-                validator: (_, value) => {
-                  if (
-                    value &&
-                    value !== selectedRole?.roleName &&
-                    data.some((role) => role.roleName === value)
-                  ) {
-                    return Promise.reject(
-                      new Error('Role name already exists!')
-                    )
-                  }
-                  return Promise.resolve()
-                },
-              },
-            ]}
-          >
-            <Input style={{ borderRadius: 0 }} />
-          </Form.Item>
-          <Form.Item
-            name="permissions"
-            label="Permissions"
-            rules={[{ required: true, message: 'Please select permissions!' }]}
-          >
-            <Select
-              mode="multiple"
-              style={{ width: '100%' }}
-              placeholder="Select multiple permissions"
-              options={[
-                { value: 'addUser ', label: 'add user ' },
-                { value: 'editUser', label: 'edit user' },
-                { value: 'create role', label: 'createRole' },
-                { value: 'createPhase', label: 'create phase' },
-                { value: 'editPhase', label: 'edit phase' },
-                {
-                  value: 'mark issue as resolved',
-                  label: 'mark issue as resolved',
-                },
-                { value: 'reopen issue', label: 'reopen issue' },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item>
-            <div className="flex justify-end space-x-4">
-              <Button
-                onClick={() => setIsPermissionModalVisible(false)}
-                style={{
-                  borderColor: 'black',
-                  color: 'black',
-                  borderRadius: 0,
-                }}
-              >
-                Close
-              </Button>
-              <Button
-                onClick={handlePermissionUpdate}
-                style={{
-                  backgroundColor: 'black',
-                  color: 'white',
-                  borderRadius: 0,
-                }}
-              >
-                Update
-              </Button>
-            </div>
-          </Form.Item>
-        </Form>
-      </Modal>
+      <RoleModal
+        isModalVisible={isModalVisible}
+        setIsModalVisible={setIsModalVisible}
+        handleProceed={handleProceed}
+        isCreatingRole={isCreatingRole}
+      />
+      {selectedRole && (
+        <PermissionModal
+          isPermissionModalVisible={isPermissionModalVisible}
+          setIsPermissionModalVisible={setIsPermissionModalVisible}
+          selectedRole={selectedRole}
+          availablePermissions={availablePermissions}
+          isLoadingPermissions={isLoadingPermissions}
+          handlePermissionUpdate={handlePermissionUpdate}
+          isUpdatingPermissions={isUpdatingPermissions}
+        />
+      )}
     </SidebarLayout>
   )
 }
