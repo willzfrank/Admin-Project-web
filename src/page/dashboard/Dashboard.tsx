@@ -10,20 +10,14 @@ import axiosInstance from '../../components/util/AxiosInstance'
 import RoleTable from '../../components/RoleTable'
 import RoleModal from '../../components/Modals/RoleModal'
 import PermissionModal from '../../components/Modals/PermissionModal'
-
-interface RoleData {
-  key: string
-  roleName: string
-  dateCreated: string
-  permissions: string[]
-}
+import { RoleData, HttpResponse, RawRoleData } from '../../types/global'
 
 const Dashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [data, setData] = useState<RoleData[]>([])
+  const [roles, setRoles] = useState<RoleData[]>([])
   const [searchText, setSearchText] = useState('')
-  const [isModalVisible, setIsModalVisible] = useState(false)
+  const [isRoleModalVisible, setIsRoleModalVisible] = useState(false)
   const [selectedRole, setSelectedRole] = useState<RoleData | null>(null)
   const [isPermissionModalVisible, setIsPermissionModalVisible] =
     useState(false)
@@ -34,19 +28,21 @@ const Dashboard: React.FC = () => {
 
   const fetchRoles = useCallback(async () => {
     try {
-      const response = await axiosInstance.get('/Roles/List')
+      const response: HttpResponse <RoleData[]> = await axiosInstance.get(
+        '/Roles/List'
+      )
       if (response.data.status && Array.isArray(response.data.data)) {
         const rolesData: RoleData[] = response.data.data.map(
-          (roleName: string, index: number) => ({
-            key: index.toString(),
-            roleName,
-            dateCreated: '01-JAN-2024 00:00 AM',
+          (role: RawRoleData) => ({
+            ...role,
+            key: role.id,
+            // dateCreated: '01-JAN-2024 00:00 AM',
             permissions: [],
           })
         )
-        setData(rolesData)
+        setRoles(rolesData)
       } else {
-        setError('Failed to fetch roles data')
+        throw new Error('Failed to fetch roles data')
       }
     } catch (error) {
       setError('An error occurred while fetching roles')
@@ -59,11 +55,13 @@ const Dashboard: React.FC = () => {
   const fetchPermissions = useCallback(async () => {
     setIsLoadingPermissions(true)
     try {
-      const response = await axiosInstance.get('/Claims/List')
+      const response: HttpResponse <string[]> = await axiosInstance.get(
+        '/Claims/List'
+      )
       if (response.data.status && Array.isArray(response.data.data)) {
         setAvailablePermissions(response.data.data)
       } else {
-        console.error('Failed to fetch permissions')
+        throw new Error('Failed to fetch permissions')
       }
     } catch (error) {
       console.error('Error fetching permissions:', error)
@@ -78,35 +76,38 @@ const Dashboard: React.FC = () => {
   }, [fetchRoles, fetchPermissions])
 
   const handlePermissions = async (roleName: string) => {
-    const role = data.find((r) => r.roleName === roleName)
-    if (role) {
-      setSelectedRole(role)
-      try {
-        const response = await axiosInstance.get(
-          `/Claims/GetByRole?roleName=${encodeURIComponent(roleName)}`
-        )
-        if (response.data.status && Array.isArray(response.data.data)) {
-          setSelectedRole({
-            ...role,
-            permissions: response.data.data,
-          })
-          setIsPermissionModalVisible(true)
-        } else {
-          console.error('Failed to fetch role permissions')
-        }
-      } catch (error) {
-        console.error('Error fetching role permissions:', error)
+    const role = roles.find((r) => r.name === roleName)
+    if (!role) return
+
+    try {
+      const response: HttpResponse <string[]> = await axiosInstance.get(
+        `/Claims/GetByRole?roleName=${encodeURIComponent(roleName)}`
+      )
+      if (response.data.status && Array.isArray(response.data.data)) {
+        setSelectedRole({ ...role, permissions: response.data.data })
+        setIsPermissionModalVisible(true)
+      } else {
+        throw new Error('Failed to fetch role permissions')
       }
+    } catch (error) {
+      console.error('Error fetching role permissions:', error)
+      message.error('Error fetching role permissions')
     }
   }
 
-  const handlePermissionUpdate = async (values: any) => {
+  const handlePermissionUpdate = async (values: {
+    roleName: string
+    permissions: string[]
+  }) => {
+    setIsUpdatingPermissions(true)
     try {
-      setIsUpdatingPermissions(true)
-      const response = await axiosInstance.post('/Claims/AddToRole', {
-        roleName: values.roleName,
-        claims: values.permissions,
-      })
+      const response: HttpResponse <null> = await axiosInstance.post(
+        '/Claims/AddToRole',
+        {
+          roleName: values.roleName,
+          claims: values.permissions,
+        }
+      )
 
       if (response.data.status) {
         message.success(
@@ -114,12 +115,9 @@ const Dashboard: React.FC = () => {
             `Permissions for "${values.roleName}" have been updated.`
         )
         setIsPermissionModalVisible(false)
-        fetchRoles() // Refresh the roles list
+        fetchRoles()
       } else {
-        message.error(
-          response.data.message ||
-            'Failed to update permissions. Please try again.'
-        )
+        throw new Error(response.data.message || 'Failed to update permissions')
       }
     } catch (error) {
       console.error('Error updating permissions:', error)
@@ -130,42 +128,36 @@ const Dashboard: React.FC = () => {
   }
 
   const handleDelete = (roleName: string) => {
-    setData(data.filter((role) => role.roleName !== roleName))
+    setRoles(roles.filter((role) => role.name !== roleName))
     message.success(`${roleName} role has been deleted.`)
   }
 
-  const handleAddRole = () => {
-    setIsModalVisible(true)
-  }
+  const handleAddRole = () => setIsRoleModalVisible(true)
 
-  const handleProceed = async (roleName: string) => {
+  const handleCreateRole = async (roleName: string) => {
+    setIsCreatingRole(true)
     try {
-      setIsCreatingRole(true)
-      const response = await axiosInstance.get(
+      const response: HttpResponse <null> = await axiosInstance.get(
         `/Roles/Create?roleName=${encodeURIComponent(roleName)}`
       )
       if (response.data.status) {
         message.success(
           response.data.message || `New role "${roleName}" has been created.`
         )
-        setIsModalVisible(false)
-        fetchRoles() // Refresh the roles list
+        setIsRoleModalVisible(false)
+        fetchRoles()
       } else {
-        message.error(
-          response.data.message ||
-            'Failed to create new role. Please try again.'
-        )
+        throw new Error(response.data.message || 'Failed to create new role')
       }
     } catch (error) {
-      console.error('Error creating role:', error)
       message.error('Failed to create new role. Please try again.')
     } finally {
       setIsCreatingRole(false)
     }
   }
 
-  const filteredData = data.filter((item) =>
-    item.roleName.toLowerCase().includes(searchText.toLowerCase())
+  const filteredRoles = roles.filter((role) =>
+    role.name.toLowerCase().includes(searchText.toLowerCase())
   )
 
   return (
@@ -179,28 +171,28 @@ const Dashboard: React.FC = () => {
             Manage system roles, permissions, and user access levels
           </p>
         </div>
-        <div className="bg-white shadow-md rounded-lg p-6">
-          <div className="flex justify-between items-start gap-5 md:items-center mb-4 md:flex-row flex-col">
-            <Input
-              placeholder="Search roles"
-              prefix={<SearchOutlined />}
-              onChange={(e) => setSearchText(e.target.value)}
-              style={{ width: 200 }}
-            />
-            <button
-              type="button"
-              onClick={handleAddRole}
-              style={{
-                backgroundColor: 'white',
-                color: 'black',
-                border: '1px solid black',
-                borderRadius: 0,
-                padding: '5px 10px',
-              }}
-            >
-              <PlusOutlined /> Add New Role
-            </button>
-          </div>
+        <div className="px-5 flex justify-between items-start gap-5 md:items-center mb-4 md:flex-row flex-col">
+          <Input
+            placeholder="Search roles"
+            prefix={<SearchOutlined />}
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{ width: 300 }}
+          />
+          <button
+            type="button"
+            onClick={handleAddRole}
+            style={{
+              backgroundColor: 'white',
+              color: 'black',
+              border: '1px solid black',
+              borderRadius: 0,
+              padding: '5px 10px',
+            }}
+          >
+            <PlusOutlined /> Add New Role
+          </button>
+        </div>
+        <div className="bg-white shadow-md rounded-lg h-[60vh] overflow-auto p-6">
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
               <Spin
@@ -213,7 +205,7 @@ const Dashboard: React.FC = () => {
             <p className="text-red-500 text-center">{error}</p>
           ) : (
             <RoleTable
-              data={filteredData}
+              data={filteredRoles}
               handlePermissions={handlePermissions}
               handleDelete={handleDelete}
             />
@@ -221,9 +213,9 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
       <RoleModal
-        isModalVisible={isModalVisible}
-        setIsModalVisible={setIsModalVisible}
-        handleProceed={handleProceed}
+        isModalVisible={isRoleModalVisible}
+        setIsModalVisible={setIsRoleModalVisible}
+        handleProceed={handleCreateRole}
         isCreatingRole={isCreatingRole}
       />
       {selectedRole && (

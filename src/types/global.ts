@@ -7,9 +7,23 @@ export type User = {
   roleName: string
 }
 
+export interface RoleData {
+  key: string
+  id: string
+  name: string
+  // dateCreated: string
+  permissions: string[]
+}
+
+export interface RawRoleData {
+  id: string
+  name: string
+  // Add other properties that come from the API, if any
+}
+
 export interface Response<T> {
   status: boolean
-  message: string
+  message?: string
   data: T
 }
 

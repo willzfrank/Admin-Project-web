@@ -1,17 +1,11 @@
 import React from 'react'
 import { Table, Space, Button } from 'antd'
-
-interface RoleData {
-  key: string
-  roleName: string
-  dateCreated: string
-  permissions: string[]
-}
+import { RoleData } from '../types/global'
 
 interface RoleTableProps {
   data: RoleData[]
-  handlePermissions: (roleName: string) => void
-  handleDelete: (roleName: string) => void
+  handlePermissions: (name: string) => void
+  handleDelete: (name: string) => void
 }
 
 const RoleTable: React.FC<RoleTableProps> = ({
@@ -22,18 +16,17 @@ const RoleTable: React.FC<RoleTableProps> = ({
   const columns = [
     {
       title: 'Role Name',
-      dataIndex: 'roleName',
-      key: 'roleName',
-      sorter: (a: RoleData, b: RoleData) =>
-        a.roleName.localeCompare(b.roleName),
+      dataIndex: 'name',
+      key: 'name',
+      sorter: (a: RoleData, b: RoleData) => a.name.localeCompare(b.name),
     },
-    {
-      title: 'Date Created',
-      dataIndex: 'dateCreated',
-      key: 'dateCreated',
-      sorter: (a: RoleData, b: RoleData) =>
-        new Date(a.dateCreated).getTime() - new Date(b.dateCreated).getTime(),
-    },
+    // {
+    //   title: 'Date Created',
+    //   dataIndex: 'dateCreated',
+    //   key: 'dateCreated',
+    //   sorter: (a: RoleData, b: RoleData) =>
+    //     new Date(a.dateCreated).getTime() - new Date(b.dateCreated).getTime(),
+    // },
     {
       title: () => <div style={{ textAlign: 'center' }}>Action</div>,
       key: 'action',
@@ -43,19 +36,16 @@ const RoleTable: React.FC<RoleTableProps> = ({
           direction="vertical"
           className="flex items-center justify-center"
         >
-          <Button
-            type="link"
-            onClick={() => handlePermissions(record.roleName)}
-          >
+          <Button type="link" onClick={() => handlePermissions(record.name)}>
             Permissions
           </Button>
-          <Button
+          {/* <Button
             type="link"
             danger
-            onClick={() => handleDelete(record.roleName)}
+            onClick={() => handleDelete(record.name)}
           >
             Delete
-          </Button>
+          </Button> */}
         </Space>
       ),
     },

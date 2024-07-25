@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
-import { Modal, Input, Spin } from 'antd'
-import { LoadingOutlined } from '@ant-design/icons'
+import { Modal, Input, Button, Form } from 'antd'
 
 interface RoleModalProps {
   isModalVisible: boolean
@@ -28,26 +27,54 @@ const RoleModal: React.FC<RoleModalProps> = ({
 
   return (
     <Modal
-      title="Create New Role"
+      title="New Role"
       visible={isModalVisible}
-      onOk={handleOk}
       onCancel={handleCancel}
-      confirmLoading={isCreatingRole}
-      okButtonProps={{ disabled: isCreatingRole }}
-      cancelButtonProps={{ disabled: isCreatingRole }}
+      footer={[
+        <Button
+          key="cancel"
+          onClick={handleCancel}
+          style={{
+            borderColor: 'black',
+            color: 'black',
+            borderRadius: 0,
+          }}
+          disabled={isCreatingRole}
+          className="px-10"
+        >
+          Close
+        </Button>,
+        <Button
+          key="proceed"
+          type="primary"
+          onClick={handleOk}
+          style={{
+            backgroundColor: 'black',
+            color: 'white',
+            borderRadius: 0,
+          }}
+          loading={isCreatingRole}
+          className="px-10"
+        >
+          {isCreatingRole ? 'loading...' : 'Proceed'}
+        </Button>,
+      ]}
     >
-      <Input
-        placeholder="Enter role name"
-        value={roleName}
-        onChange={(e) => setRoleName(e.target.value)}
-      />
-      {isCreatingRole && (
-        <Spin
-          indicator={<LoadingOutlined spin />}
-          className="text-black"
-          size="large"
-        />
-      )}
+      <Form layout="vertical" className="my-5">
+        <Form.Item
+          label={
+            <span>
+              Role Name <span style={{ color: 'red' }}>*</span>
+            </span>
+          }
+        >
+          <Input
+            placeholder="Enter role name"
+            value={roleName}
+            onChange={(e) => setRoleName(e.target.value)}
+          />
+        </Form.Item>
+      </Form>
     </Modal>
   )
 }

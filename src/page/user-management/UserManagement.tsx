@@ -11,6 +11,7 @@ import {
   Row,
   Col,
   Select,
+  message,
 } from 'antd'
 import {
   LoadingOutlined,
@@ -19,50 +20,31 @@ import {
 } from '@ant-design/icons'
 import SidebarLayout from '../../layouts/Sidebar'
 import { ColumnsType } from 'antd/es/table'
+import axiosInstance from '../../components/util/AxiosInstance'
 
 interface UserData {
-  key: string
+  id: string
   firstName: string
   lastName: string
-  company: string
-  role: string
-  createdOn: string
-  status: 'Active' | 'Inactive'
+  phoneNumber: string
+  email: string
+  imageUrl: string | null
+  companyId: string | null
+  companyName: string | null
+  roleName: string
+  isActive: boolean
+  createdAt: string
+  permissions?: string[]
 }
 
-const users: UserData[] = [
-  {
-    key: '1',
-    firstName: 'Clark',
-    lastName: 'Kent',
-    company: 'Default',
-    role: 'Admin',
-    createdOn: '06-JUN-2024 11:05 PM',
-    status: 'Active',
-  },
-  {
-    key: '2',
-    firstName: 'Bruce',
-    lastName: 'Wayne',
-    company: 'Wayne Ent.',
-    role: 'Owner',
-    createdOn: '01-MAR-2024 08:32 AM',
-    status: 'Active',
-  },
-  {
-    key: '3',
-    firstName: 'Mary',
-    lastName: 'Jane',
-    company: 'Star Labs Inc.',
-    role: 'Supervisor',
-    createdOn: '28-NOV-2023 10:16 AM',
-    status: 'Inactive',
-  },
-]
+interface CompanyData {
+  id: string
+  name: string
+}
 
 const UserManagement: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true)
-  const [data, setData] = useState<UserData[]>(users)
+  const [data, setData] = useState<UserData[]>([])
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [searchText, setSearchText] = useState('')
   const [form] = Form.useForm()
@@ -72,12 +54,115 @@ const UserManagement: React.FC = () => {
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isPermissionsModalVisible, setIsPermissionsModalVisible] =
     useState(false)
+  const [roles, setRoles] = useState<string[]>([])
+  const [companies, setCompanies] = useState<CompanyData[]>([])
+  const [permissionsOptions, setPermissionsOptions] = useState<
+    { value: string; label: string }[]
+  >([])
+  const [isMoreDetailsModalVisible, setIsMoreDetailsModalVisible] =
+    useState(false)
 
-  useEffect(() => {
-    setTimeout(() => {
+  const fetchCompanyDetails = async (
+    companyId: string
+  ): Promise<CompanyData | null> => {
+    try {
+      const response = await axiosInstance.get(
+        `/Company/ViewById?CompanyId=${companyId}`
+      )
+      if (response.data.status) {
+        return {
+          id: response.data.data.id,
+          name: response.data.data.name,
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching company details:', error)
+    }
+    return null
+  }
+
+  const fetchUsers = async () => {
+    setIsLoading(true)
+    try {
+      const response = await axiosInstance.get('/Users/ViewAll')
+      if (response.data.status) {
+        const usersWithDetails = await Promise.all(
+          response.data.data.map(async (user: UserData) => {
+            const companyDetails = user.companyId
+              ? await fetchCompanyDetails(user.companyId)
+              : null
+            const userPermissions = await fetchUserPermissions(user.id)
+            return {
+              ...user,
+              companyName: companyDetails ? companyDetails.name : 'N/A',
+              permissions: userPermissions,
+            }
+          })
+        )
+        setData(usersWithDetails)
+      } else {
+        message.error('Failed to fetch users')
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error)
+      message.error('An error occurred while fetching users')
+    } finally {
       setIsLoading(false)
-    }, 1000)
-  }, [])
+    }
+  }
+
+  const fetchUserPermissions = async (userId: string) => {
+    try {
+      const response = await axiosInstance.get(
+        `/Claims/GetByUser?userId=${userId}`
+      )
+      if (response.data.status) {
+        return response.data.data
+      }
+    } catch (error) {
+      console.error('Error fetching user permissions:', error)
+    }
+    return []
+  }
+
+  const fetchRoles = async () => {
+    try {
+      const [rolesResponse, claimsResponse] = await Promise.all([
+        axiosInstance.get('/Roles/List'),
+        axiosInstance.get('/Claims/List'),
+      ])
+      if (rolesResponse.data.status) {
+        setRoles(
+          rolesResponse.data.data.map((role: { name: string }) => role.name)
+        )
+      }
+      if (claimsResponse.data.status) {
+        setPermissionsOptions(
+          claimsResponse.data.data.map((claim: string) => ({
+            value: claim,
+            label: claim,
+          }))
+        )
+      }
+    } catch (error) {
+      console.error('Error fetching roles and claims:', error)
+      message.error('An error occurred while fetching roles and claims')
+    }
+  }
+
+  const fetchCompanies = async () => {
+    try {
+      const response = await axiosInstance.get('/Company/ViewAll')
+      if (response.data.status) {
+        setCompanies(response.data.data)
+      } else {
+        message.error('Failed to fetch companies')
+      }
+    } catch (error) {
+      console.error('Error fetching companies:', error)
+      message.error('An error occurred while fetching companies')
+    }
+  }
 
   const showModal = () => {
     setIsModalVisible(true)
@@ -87,14 +172,38 @@ const UserManagement: React.FC = () => {
     form
       .validateFields()
       .then((values) => {
-        console.log('Form values:', values)
-        // Here you would typically send the data to your backend
-        setIsModalVisible(false)
-        form.resetFields()
+        createUser(values)
       })
       .catch((info) => {
         console.log('Validate Failed:', info)
       })
+  }
+
+  const createUser = async (values: any) => {
+    try {
+      const response = await axiosInstance.post('/Users/Create', {
+        userName: values.email,
+        firstName: values.firstName,
+        lastName: values.lastName,
+        phoneNumber: values.phoneNumber,
+        email: values.email,
+        password: 'password',
+        gender: 'male',
+        roleName: values.roleName,
+        companyId: values.companyId,
+      })
+      if (response.data.status) {
+        message.success('User created successfully')
+        setIsModalVisible(false)
+        form.resetFields()
+        fetchUsers()
+      } else {
+        message.error('Failed to create user')
+      }
+    } catch (error) {
+      console.error('Error creating user:', error)
+      message.error('An error occurred while creating the user')
+    }
   }
 
   const handleCancel = () => {
@@ -103,44 +212,96 @@ const UserManagement: React.FC = () => {
   }
 
   const handleMoreDetails = (record: UserData) => {
-    console.log('More Details:', record)
+    setEditingUser(record)
+    editForm.setFieldsValue({
+      ...record,
+      companyId: record.companyId,
+      roleName: record.roleName,
+    })
+    setIsMoreDetailsModalVisible(true)
+  }
+
+  const handleMoreDetailsCancel = () => {
+    setIsMoreDetailsModalVisible(false)
+    setEditingUser(null)
   }
 
   const handleExtraPermissions = (record: UserData) => {
     setEditingUser(record)
     permissionsForm.setFieldsValue({
       userName: `${record.firstName} ${record.lastName}`,
+      permissions: record.permissions || [],
     })
     setIsPermissionsModalVisible(true)
   }
 
-  const handleToggleStatus = (record: UserData) => {
-    const newData = data.map((item) => {
-      if (item.key === record.key) {
-        const newStatus: 'Active' | 'Inactive' =
-          item.status === 'Active' ? 'Inactive' : 'Active'
-        return { ...item, status: newStatus }
+  const handleToggleStatus = async (record: UserData) => {
+    try {
+      const response = await axiosInstance.get(
+        `/Users/Status/Toggle?userId=${record.id}`
+      )
+      if (response.data.status) {
+        // If the API call is successful, update the local state
+        const newData = data.map((item) => {
+          if (item.id === record.id) {
+            return { ...item, isActive: !item.isActive }
+          }
+          return item
+        })
+        setData(newData)
+        message.success(
+          `User ${record.isActive ? 'disabled' : 'enabled'} successfully`
+        )
+      } else {
+        message.error('Failed to update user status')
       }
-      return item
-    })
-    setData(newData)
+    } catch (error) {
+      console.error('Error toggling user status:', error)
+      message.error('An error occurred while updating user status')
+    }
   }
 
   const handleEdit = (record: UserData) => {
     setEditingUser(record)
-    editForm.setFieldsValue(record)
+    editForm.setFieldsValue({
+      ...record,
+      companyId: record.companyId,
+      roleName: record.roleName,
+    })
     setIsEditModalVisible(true)
   }
 
   const handleEditOk = () => {
     editForm
       .validateFields()
-      .then((values) => {
-        console.log('Edit Form values:', values)
-        // Here you would typically send the updated data to your backend
-        setIsEditModalVisible(false)
-        editForm.resetFields()
-        setEditingUser(null)
+      .then(async (values) => {
+        try {
+          const response = await axiosInstance.post('/Users/Update', {
+            userName: values.email,
+            firstName: values.firstName,
+            lastName: values.lastName,
+            phoneNumber: values.phoneNumber,
+            email: values.email,
+            password: 'password',
+            gender: 'Male',
+            roleName: values.roleName,
+            companyId: values.companyId,
+            id: editingUser?.id,
+          })
+
+          if (response.data.status) {
+            message.success('User updated successfully')
+            setIsEditModalVisible(false)
+            editForm.resetFields()
+            setEditingUser(null)
+            fetchUsers() // Refresh the user list
+          } else {
+            message.error('Failed to update user')
+          }
+        } catch (error) {
+          console.error('Error updating user:', error)
+          message.error('An error occurred while updating the user')
+        }
       })
       .catch((info) => {
         console.log('Validate Failed:', info)
@@ -153,19 +314,26 @@ const UserManagement: React.FC = () => {
     setEditingUser(null)
   }
 
-  const handlePermissionsOk = () => {
-    permissionsForm
-      .validateFields()
-      .then((values) => {
-        console.log('Permissions Form values:', values)
-        // Here you would typically send the updated permissions data to your backend
+  const handlePermissionsOk = async () => {
+    try {
+      const values = await permissionsForm.validateFields()
+      const response = await axiosInstance.post('/Claims/AddToUser', {
+        userId: editingUser?.id,
+        claims: values.permissions,
+      })
+      if (response.data.status) {
+        message.success('Permissions updated successfully')
         setIsPermissionsModalVisible(false)
         permissionsForm.resetFields()
         setEditingUser(null)
-      })
-      .catch((info) => {
-        console.log('Validate Failed:', info)
-      })
+        fetchUsers() // Refresh the user list
+      } else {
+        message.error('Failed to update permissions')
+      }
+    } catch (error) {
+      console.error('Error updating permissions:', error)
+      message.error('An error occurred while updating permissions')
+    }
   }
 
   const handlePermissionsCancel = () => {
@@ -189,28 +357,33 @@ const UserManagement: React.FC = () => {
     },
     {
       title: 'Company',
-      dataIndex: 'company',
-      key: 'company',
+      dataIndex: 'companyId',
+      key: 'companyId',
+      render: (companyId) => {
+        const company = companies.find((c) => c.id === companyId)
+        return company ? company.name : 'N/A'
+      },
     },
     {
       title: 'Role',
-      dataIndex: 'role',
-      key: 'role',
+      dataIndex: 'roleName',
+      key: 'roleName',
     },
     {
       title: 'Created On',
-      dataIndex: 'createdOn',
-      key: 'createdOn',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
       sorter: (a, b) =>
-        new Date(a.createdOn).getTime() - new Date(b.createdOn).getTime(),
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      render: (createdAt) => new Date(createdAt).toLocaleString(),
     },
     {
       title: 'Status',
-      key: 'status',
-      dataIndex: 'status',
-      render: (status: 'Active' | 'Inactive') => (
-        <Tag color={status === 'Active' ? 'green' : 'red'}>
-          {status.toUpperCase()}
+      key: 'isActive',
+      dataIndex: 'isActive',
+      render: (isActive: boolean) => (
+        <Tag color={isActive ? 'green' : 'red'}>
+          {isActive ? 'ACTIVE' : 'INACTIVE'}
         </Tag>
       ),
     },
@@ -243,11 +416,11 @@ const UserManagement: React.FC = () => {
           </span>
           <span
             className={`cursor-pointer ${
-              record.status === 'Active' ? 'text-[#af3e2f]' : 'text-[#3c5fff]'
+              record.isActive ? 'text-[#af3e2f]' : 'text-[#3c5fff]'
             }`}
             onClick={() => handleToggleStatus(record)}
           >
-            {record.status === 'Active' ? 'Disable' : 'Enable'}
+            {record.isActive ? 'Disable' : 'Enable'}
           </span>
         </Space>
       ),
@@ -258,27 +431,16 @@ const UserManagement: React.FC = () => {
     (item) =>
       item.firstName.toLowerCase().includes(searchText.toLowerCase()) ||
       item.lastName.toLowerCase().includes(searchText.toLowerCase()) ||
-      item.company.toLowerCase().includes(searchText.toLowerCase())
+      item.email.toLowerCase().includes(searchText.toLowerCase()) ||
+      (item.companyName?.toLowerCase().includes(searchText.toLowerCase()) ??
+        false)
   )
 
-  const companyOptions = [
-    { value: 'Default', label: 'Default' },
-    { value: 'Wayne Ent.', label: 'Wayne Enterprises' },
-    { value: 'Star Labs Inc.', label: 'Star Labs Inc.' },
-  ]
-
-  const roleOptions = [
-    { value: 'Admin', label: 'Admin' },
-    { value: 'Owner', label: 'Owner' },
-    { value: 'Supervisor', label: 'Supervisor' },
-  ]
-
-  const permissionsOptions = [
-    { value: 'Read', label: 'Read' },
-    { value: 'Write', label: 'Write' },
-    { value: 'Execute', label: 'Execute' },
-    { value: 'Delete', label: 'Delete' },
-  ]
+  useEffect(() => {
+    fetchUsers()
+    fetchRoles()
+    fetchCompanies()
+  }, [])
 
   return (
     <SidebarLayout>
@@ -298,7 +460,7 @@ const UserManagement: React.FC = () => {
               prefix={<SearchOutlined />}
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              className="mb-4 md:mb-0 md:mr-4"
+              className="mb-4 md:mb-0 md:mr-4 w-[300px]"
             />
             <Button
               type="primary"
@@ -400,41 +562,61 @@ const UserManagement: React.FC = () => {
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item
-                  name="company"
+                  name="companyId"
                   label="Company"
                   rules={[
                     { required: true, message: 'Please select the company!' },
                   ]}
                 >
-                  <Select
-                    placeholder="Select a company"
-                    options={companyOptions}
-                  />{' '}
+                  <Select>
+                    {companies.map((company) => (
+                      <Select.Option key={company.id} value={company.id}>
+                        {company.name}
+                      </Select.Option>
+                    ))}
+                  </Select>
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item
-                  name="role"
+                  name="roleName"
                   label="Role"
                   rules={[
                     { required: true, message: 'Please select the role!' },
                   ]}
                 >
-                  <Select placeholder="Select a role" options={roleOptions} />
+                  <Select>
+                    {roles.map((role) => (
+                      <Select.Option key={role} value={role}>
+                        {role}
+                      </Select.Option>
+                    ))}
+                  </Select>
                 </Form.Item>
               </Col>
             </Row>
           </Form>
         </Modal>
 
-        {/* Edit User Modal */}
+        {/* Edit User / More Details Modal */}
         <Modal
-          title="Edit User"
-          visible={isEditModalVisible}
-          onOk={handleEditOk}
-          onCancel={handleEditCancel}
-          okText="Save"
+          title={isEditModalVisible ? 'Edit User' : 'User Details'}
+          visible={isEditModalVisible || isMoreDetailsModalVisible}
+          onOk={isEditModalVisible ? handleEditOk : handleMoreDetailsCancel}
+          onCancel={
+            isEditModalVisible ? handleEditCancel : handleMoreDetailsCancel
+          }
+          okText={isEditModalVisible ? 'Save' : 'Close'}
           cancelText="Cancel"
+          footer={
+            isEditModalVisible
+              ? undefined
+              : [
+                  <Button key="close" onClick={handleMoreDetailsCancel}>
+                    Close
+                  </Button>,
+                ]
+          }
         >
           <Form form={editForm} layout="vertical">
             <Row gutter={16}>
@@ -446,7 +628,7 @@ const UserManagement: React.FC = () => {
                     { required: true, message: 'Please input the first name!' },
                   ]}
                 >
-                  <Input placeholder="John" />
+                  <Input placeholder="John" disabled={!isEditModalVisible} />
                 </Form.Item>
               </Col>
               <Col span={12}>
@@ -457,7 +639,7 @@ const UserManagement: React.FC = () => {
                     { required: true, message: 'Please input the last name!' },
                   ]}
                 >
-                  <Input placeholder="Snow" />
+                  <Input placeholder="Snow" disabled={!isEditModalVisible} />
                 </Form.Item>
               </Col>
             </Row>
@@ -474,7 +656,10 @@ const UserManagement: React.FC = () => {
                     { type: 'email', message: 'Please enter a valid email!' },
                   ]}
                 >
-                  <Input placeholder="john@example.com" />
+                  <Input
+                    placeholder="john@example.com"
+                    disabled={!isEditModalVisible}
+                  />
                 </Form.Item>
               </Col>
               <Col span={12}>
@@ -488,34 +673,46 @@ const UserManagement: React.FC = () => {
                     },
                   ]}
                 >
-                  <Input placeholder="07012345678" />
+                  <Input
+                    placeholder="07012345678"
+                    disabled={!isEditModalVisible}
+                  />
                 </Form.Item>
               </Col>
             </Row>
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item
-                  name="company"
+                  name="companyId"
                   label="Company"
                   rules={[
                     { required: true, message: 'Please select the company!' },
                   ]}
                 >
-                  <Select
-                    placeholder="Select a company"
-                    options={companyOptions}
-                  />
+                  <Select disabled={!isEditModalVisible}>
+                    {companies.map((company) => (
+                      <Select.Option key={company.id} value={company.id}>
+                        {company.name}
+                      </Select.Option>
+                    ))}
+                  </Select>
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item
-                  name="role"
+                  name="roleName"
                   label="Role"
                   rules={[
                     { required: true, message: 'Please select the role!' },
                   ]}
                 >
-                  <Select placeholder="Select a role" options={roleOptions} />
+                  <Select disabled={!isEditModalVisible}>
+                    {roles.map((role) => (
+                      <Select.Option key={role} value={role}>
+                        {role}
+                      </Select.Option>
+                    ))}
+                  </Select>
                 </Form.Item>
               </Col>
             </Row>
