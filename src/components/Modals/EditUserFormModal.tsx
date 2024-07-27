@@ -1,41 +1,57 @@
-import React, { useEffect } from 'react'
-import { Modal, Form, Row, Col, Input, Select } from 'antd'
-import { EditUserFormProps } from '../../types/global'
+import React from 'react'
+import { Modal, Form, Input, Select, Row, Col } from 'antd'
+import { CompanyData } from '../../types/global'
 
-const EditUserForm: React.FC<EditUserFormProps> = ({
+interface EditUserModalProps {
+  visible: boolean
+  onOk: () => void
+  onCancel: () => void
+  form: any
+  companies: CompanyData[]
+  roles: string[]
+  isEditingUser: boolean
+  isViewOnly: boolean // New prop to determine if it's view-only mode
+}
+
+const EditUserModal: React.FC<EditUserModalProps> = ({
   visible,
-  onUpdate,
+  onOk,
   onCancel,
-  user,
-  roles,
+  form,
   companies,
+  roles,
+  isEditingUser,
+  isViewOnly,
 }) => {
-  const [form] = Form.useForm()
-
-  useEffect(() => {
-    if (user) {
-      form.setFieldsValue(user)
-    }
-  }, [user, form])
-
   return (
     <Modal
-      title="Edit User"
+      title={isViewOnly ? 'User Details' : 'Edit User'}
       visible={visible}
-      onOk={() => {
-        form
-          .validateFields()
-          .then((values) => {
-            form.resetFields()
-            onUpdate(values)
-          })
-          .catch((info) => {
-            console.log('Validate Failed:', info)
-          })
-      }}
+      onOk={onOk}
       onCancel={onCancel}
-      okText="Update"
-      cancelText="Cancel"
+      okText={isViewOnly ? 'Close' : isEditingUser ? 'Saving...' : 'Save'}
+      cancelText={isViewOnly ? undefined : 'Cancel'}
+      okButtonProps={{
+        loading: isEditingUser,
+        disabled: isEditingUser,
+        style: {
+          backgroundColor: 'black',
+          borderColor: 'black',
+          paddingLeft: '25px',
+          paddingRight: '25px',
+          borderRadius: '0px',
+          color: 'white',
+        },
+      }}
+      cancelButtonProps={{
+        style: {
+          borderColor: 'black',
+          paddingLeft: '25px',
+          paddingRight: '25px',
+          borderRadius: '0px',
+        },
+        hidden: isViewOnly,
+      }}
     >
       <Form form={form} layout="vertical">
         <Row gutter={16}>
@@ -47,7 +63,7 @@ const EditUserForm: React.FC<EditUserFormProps> = ({
                 { required: true, message: 'Please input the first name!' },
               ]}
             >
-              <Input placeholder="John" />
+              <Input placeholder="John" disabled={isViewOnly} />
             </Form.Item>
           </Col>
           <Col span={12}>
@@ -58,7 +74,7 @@ const EditUserForm: React.FC<EditUserFormProps> = ({
                 { required: true, message: 'Please input the last name!' },
               ]}
             >
-              <Input placeholder="Snow" />
+              <Input placeholder="Snow" disabled={isViewOnly} />
             </Form.Item>
           </Col>
         </Row>
@@ -68,11 +84,14 @@ const EditUserForm: React.FC<EditUserFormProps> = ({
               name="email"
               label="Email Address"
               rules={[
-                { required: true, message: 'Please input the email address!' },
-                { type: 'email', message: 'Please enter a valid email!' },
+                {
+                  required: true,
+                  type: 'email',
+                  message: 'Please input a valid email address!',
+                },
               ]}
             >
-              <Input placeholder="john@example.com" />
+              <Input placeholder="john@example.com" disabled={isViewOnly} />
             </Form.Item>
           </Col>
           <Col span={12}>
@@ -83,7 +102,7 @@ const EditUserForm: React.FC<EditUserFormProps> = ({
                 { required: true, message: 'Please input the phone number!' },
               ]}
             >
-              <Input placeholder="07012345678" />
+              <Input placeholder="07012345678" disabled={isViewOnly} />
             </Form.Item>
           </Col>
         </Row>
@@ -96,7 +115,7 @@ const EditUserForm: React.FC<EditUserFormProps> = ({
                 { required: true, message: 'Please select the company!' },
               ]}
             >
-              <Select>
+              <Select disabled={isViewOnly}>
                 {companies.map((company) => (
                   <Select.Option key={company.id} value={company.id}>
                     {company.name}
@@ -107,14 +126,14 @@ const EditUserForm: React.FC<EditUserFormProps> = ({
           </Col>
           <Col span={12}>
             <Form.Item
-              name="roleId"
+              name="roleName"
               label="Role"
               rules={[{ required: true, message: 'Please select the role!' }]}
             >
-              <Select>
+              <Select disabled={isViewOnly}>
                 {roles.map((role) => (
-                  <Select.Option key={role.id} value={role.id}>
-                    {role.name}
+                  <Select.Option key={role} value={role}>
+                    {role}
                   </Select.Option>
                 ))}
               </Select>
@@ -126,4 +145,4 @@ const EditUserForm: React.FC<EditUserFormProps> = ({
   )
 }
 
-export default EditUserForm
+export default EditUserModal

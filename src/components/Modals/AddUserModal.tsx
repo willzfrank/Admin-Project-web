@@ -6,7 +6,7 @@ interface AddUserModalProps {
   visible: boolean
   onOk: () => void
   onCancel: () => void
-  form: any 
+  form: any
   companies: CompanyData[]
   roles: string[]
   isAddingUser: boolean
@@ -23,7 +23,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
 }) => {
   return (
     <Modal
-      title="Add User"
+      title="Create User"
       visible={visible}
       onOk={onOk}
       onCancel={onCancel}
@@ -35,17 +35,18 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
         style: {
           backgroundColor: 'black',
           borderColor: 'black',
-          paddingLeft: '50px',
-          paddingRight: '50px',
+          paddingLeft: '25px',
+          paddingRight: '25px',
           borderRadius: '0px',
+          color: 'white',
         },
       }}
       cancelButtonProps={{
         disabled: isAddingUser,
         style: {
           borderColor: 'black',
-          paddingLeft: '50px',
-          paddingRight: '50px',
+          paddingLeft: '25px',
+          paddingRight: '25px',
           borderRadius: '0px',
         },
       }}

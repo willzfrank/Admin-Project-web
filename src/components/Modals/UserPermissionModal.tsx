@@ -1,48 +1,69 @@
-import React, { useEffect } from 'react'
-import { Modal, Form, Checkbox } from 'antd'
-import { PermissionsFormProps } from '../../types/global'
+import React from 'react'
+import { Modal, Form, Input, Select } from 'antd'
 
-const UserPermissionModal: React.FC<PermissionsFormProps> = ({
+interface PermissionsModalProps {
+  visible: boolean
+  onOk: () => void
+  onCancel: () => void
+  form: any
+  permissionsOptions: { value: string; label: string }[]
+  isUpdatingPermissions: boolean
+}
+
+const UserPermissionsModal: React.FC<PermissionsModalProps> = ({
   visible,
-  onUpdate,
+  onOk,
   onCancel,
-  user,
+  form,
   permissionsOptions,
+  isUpdatingPermissions,
 }) => {
-  const [form] = Form.useForm()
-
-  useEffect(() => {
-    if (user) {
-      form.setFieldsValue({ permissions: user.permissions })
-    }
-  }, [user, form])
-
   return (
     <Modal
-      title="Manage Permissions"
+      title="User Permissions"
       visible={visible}
-      onOk={() => {
-        form
-          .validateFields()
-          .then((values) => {
-            form.resetFields()
-            onUpdate(values)
-          })
-          .catch((info) => {
-            console.log('Validate Failed:', info)
-          })
-      }}
+      onOk={onOk}
       onCancel={onCancel}
-      okText="Update"
+      okText={isUpdatingPermissions ? 'Updating...' : 'Update'}
       cancelText="Cancel"
+      okButtonProps={{
+        loading: isUpdatingPermissions,
+        disabled: isUpdatingPermissions,
+        style: {
+          backgroundColor: 'black',
+          borderColor: 'black',
+          paddingLeft: '25px',
+          paddingRight: '25px',
+          borderRadius: '0px',
+        },
+      }}
+      cancelButtonProps={{
+        disabled: isUpdatingPermissions,
+        style: {
+          borderColor: 'black',
+          paddingLeft: '25px',
+          paddingRight: '25px',
+          borderRadius: '0px',
+        },
+      }}
     >
-      <Form form={form} layout="vertical">
-        <Form.Item name="permissions" label="Permissions">
-          <Checkbox.Group
-            options={permissionsOptions.map((p) => ({
-              label: p.name,
-              value: p.id,
-            }))}
+      <Form layout="vertical" form={form}>
+        <Form.Item
+          name="userName"
+          label="User Name"
+          rules={[{ required: true, message: 'Please enter the user name' }]}
+        >
+          <Input placeholder="User Name" disabled />
+        </Form.Item>
+        <Form.Item
+          name="permissions"
+          label="Permissions"
+          rules={[{ required: true, message: 'Please select permissions' }]}
+        >
+          <Select
+            mode="multiple"
+            options={permissionsOptions}
+            placeholder="Select Permissions"
           />
         </Form.Item>
       </Form>
@@ -50,4 +71,4 @@ const UserPermissionModal: React.FC<PermissionsFormProps> = ({
   )
 }
 
-export default UserPermissionModal
+export default UserPermissionsModal
