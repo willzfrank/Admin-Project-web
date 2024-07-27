@@ -50,7 +50,7 @@ function handleError(error: AxiosError) {
         handleAuthError('Your session has expired. Please log in again.')
         break
       case 403:
-        toast.error('You do not have permission to access this resource.')
+        handleAuthError('You do not have permission to access this resource.')
         break
       case 404:
         toast.error('The requested resource was not found.')
@@ -91,7 +91,10 @@ function handleAuthError(message: string) {
 }
 
 axiosInstance.isAuthError = (error: any): boolean => {
-  return error.response && error.response.status === 401
+  return (
+    error.response &&
+    (error.response.status === 401 || error.response.status === 403)
+  )
 }
 
 export default axiosInstance
