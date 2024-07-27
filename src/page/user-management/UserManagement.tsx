@@ -61,6 +61,9 @@ const UserManagement: React.FC = () => {
   >([])
   const [isMoreDetailsModalVisible, setIsMoreDetailsModalVisible] =
     useState(false)
+  const [isAddingUser, setIsAddingUser] = useState(false)
+  const [isEditingUser, setIsEditingUser] = useState(false)
+  const [isUpdatingPermissions, setIsUpdatingPermissions] = useState(false)
 
   const fetchCompanyDetails = async (
     companyId: string
@@ -172,6 +175,7 @@ const UserManagement: React.FC = () => {
     form
       .validateFields()
       .then((values) => {
+        setIsAddingUser(true)
         createUser(values)
       })
       .catch((info) => {
@@ -203,6 +207,8 @@ const UserManagement: React.FC = () => {
     } catch (error) {
       console.error('Error creating user:', error)
       message.error('An error occurred while creating the user')
+    } finally {
+      setIsAddingUser(false)
     }
   }
 
@@ -275,6 +281,7 @@ const UserManagement: React.FC = () => {
     editForm
       .validateFields()
       .then(async (values) => {
+        setIsEditingUser(true)
         try {
           const response = await axiosInstance.post('/Users/Update', {
             userName: values.email,
@@ -301,6 +308,8 @@ const UserManagement: React.FC = () => {
         } catch (error) {
           console.error('Error updating user:', error)
           message.error('An error occurred while updating the user')
+        } finally {
+          setIsEditingUser(false)
         }
       })
       .catch((info) => {
@@ -317,6 +326,7 @@ const UserManagement: React.FC = () => {
   const handlePermissionsOk = async () => {
     try {
       const values = await permissionsForm.validateFields()
+      setIsUpdatingPermissions(true)
       const response = await axiosInstance.post('/Claims/AddToUser', {
         userId: editingUser?.id,
         claims: values.permissions,
@@ -326,16 +336,17 @@ const UserManagement: React.FC = () => {
         setIsPermissionsModalVisible(false)
         permissionsForm.resetFields()
         setEditingUser(null)
-        fetchUsers() // Refresh the user list
+        fetchUsers()
       } else {
         message.error('Failed to update permissions')
       }
     } catch (error) {
       console.error('Error updating permissions:', error)
       message.error('An error occurred while updating permissions')
+    } finally {
+      setIsUpdatingPermissions(false)
     }
   }
-
   const handlePermissionsCancel = () => {
     setIsPermissionsModalVisible(false)
     permissionsForm.resetFields()
@@ -500,8 +511,29 @@ const UserManagement: React.FC = () => {
           visible={isModalVisible}
           onOk={handleOk}
           onCancel={handleCancel}
-          okText="Save"
-          cancelText="Cancel"
+          okText={isAddingUser? 'Proceeding...' : 'Proceed'}
+          // loading={isAddingUser}
+          cancelText="Close"
+          okButtonProps={{
+            disabled: isAddingUser,
+            loading: isAddingUser,
+            style: {
+              backgroundColor: 'black',
+              borderColor: 'black',
+              paddingLeft: '50px',
+              paddingRight: '50px',
+              borderRadius: '0px',
+            },
+          }}
+          cancelButtonProps={{
+            disabled: isAddingUser,
+            style: {
+              borderColor: 'black',
+              paddingLeft: '50px',
+              paddingRight: '50px',
+              borderRadius: '0px',
+            },
+          }}
         >
           <Form form={form} layout="vertical">
             <Row gutter={16}>
@@ -607,12 +639,37 @@ const UserManagement: React.FC = () => {
             isEditModalVisible ? handleEditCancel : handleMoreDetailsCancel
           }
           okText={isEditModalVisible ? 'Save' : 'Close'}
+          okButtonProps={{
+            loading: isEditingUser,
+            disabled: isEditingUser,
+            style: {
+              backgroundColor: 'black',
+              borderColor: 'black',
+              paddingLeft: '50px',
+              paddingRight: '50px',
+              borderRadius: '0px',
+            },
+          }}
+          cancelButtonProps={{
+            loading: isEditingUser,
+            disabled: isEditingUser,
+            style: {
+              borderColor: 'black',
+              paddingLeft: '50px',
+              paddingRight: '50px',
+              borderRadius: '0px',
+            },
+          }}
           cancelText="Cancel"
           footer={
             isEditModalVisible
               ? undefined
               : [
-                  <Button key="close" onClick={handleMoreDetailsCancel}>
+                  <Button
+                    key="close"
+                    onClick={handleMoreDetailsCancel}
+                    className="border px-10 border-black rounded-none"
+                  >
                     Close
                   </Button>,
                 ]
@@ -725,12 +782,30 @@ const UserManagement: React.FC = () => {
           visible={isPermissionsModalVisible}
           onOk={handlePermissionsOk}
           onCancel={handlePermissionsCancel}
-          okText="Update"
+          okText={isUpdatingPermissions? 'Updating...' : 'Update'}
+
           cancelText="Cancel"
           okButtonProps={{
-            style: { backgroundColor: 'black', borderColor: 'black' },
+            loading: isUpdatingPermissions,
+            disabled: isUpdatingPermissions,
+            style: {
+              backgroundColor: 'black',
+              borderColor: 'black',
+              paddingLeft: '50px',
+              paddingRight: '50px',
+              borderRadius: '0px',
+            },
           }}
-          cancelButtonProps={{ style: { borderColor: 'black' } }}
+          cancelButtonProps={{
+            loading: isUpdatingPermissions,
+            disabled: isUpdatingPermissions,
+            style: {
+              borderColor: 'black',
+              paddingLeft: '50px',
+              paddingRight: '50px',
+              borderRadius: '0px',
+            },
+          }}
         >
           <Form layout="vertical" form={permissionsForm}>
             <Form.Item
