@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Modal, Select, Spin, Form, Button, Input } from 'antd'
 import { LoadingOutlined } from '@ant-design/icons'
 
@@ -34,6 +34,15 @@ const PermissionModal: React.FC<PermissionModalProps> = ({
   const onFinish = (values: any) => {
     handlePermissionUpdate(values)
   }
+
+  useEffect(() => {
+    if (selectedRole) {
+      form.setFieldsValue({
+        roleName: selectedRole.name,
+        permissions: selectedRole.permissions,
+      })
+    }
+  }, [selectedRole, form])
 
   return (
     <Modal

@@ -111,9 +111,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
             <Form.Item
               name="companyId"
               label="Company"
-              rules={[
-                { required: true, message: 'Please select the company!' },
-              ]}
+             
             >
               <Select disabled={isViewOnly}>
                 {companies.map((company) => (

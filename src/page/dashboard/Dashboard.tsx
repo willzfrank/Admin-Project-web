@@ -160,6 +160,8 @@ const Dashboard: React.FC = () => {
     role.name.toLowerCase().includes(searchText.toLowerCase())
   )
 
+  console.log('selectedRole', selectedRole)
+
   return (
     <SidebarLayout>
       <div className="mt-10 px-6">
