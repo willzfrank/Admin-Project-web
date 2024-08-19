@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import axiosInstance from './util/AxiosInstance'
 
-type IssueActionsProps = {
+type ProjectActionsProps = {
   issueId: string
   handleResolveIssue: () => void
   handleIssueDetails: () => void
@@ -26,7 +26,7 @@ const reopenIssue = async (issueId: string) => {
   }
 }
 
-const ProjectAction: React.FC<IssueActionsProps> = ({
+const ProjectAction: React.FC<ProjectActionsProps> = ({
   issueId,
   handleResolveIssue,
   handleIssueDetails,

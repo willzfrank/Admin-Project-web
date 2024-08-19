@@ -53,7 +53,10 @@ export type Phase = {
 
 export type SeverityType = 'Informational' | 'Warning' | 'Critical'
 
-export type IssueStatusType = 'Active' | 'Inactive'
+export type IssueStatusType = 'Unresolved' | 'Resolved'
+
+export type statusType = 'Active' | 'Inactive'
+
 
 export type ProjectStatusType = 'Todo' | 'InProgress' | 'OnHold' | 'Done'
 

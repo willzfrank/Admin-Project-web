@@ -8,7 +8,7 @@ type CompanyActionsProps = {
   onStatusToggle: () => void
 }
 
-const IssueActions: React.FC<CompanyActionsProps> = ({
+const CompanyActions: React.FC<CompanyActionsProps> = ({
   companyId,
   handleCompanyDetails,
   handleEditCompany,
@@ -47,4 +47,4 @@ const IssueActions: React.FC<CompanyActionsProps> = ({
   )
 }
 
-export default IssueActions
+export default CompanyActions
