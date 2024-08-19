@@ -28,7 +28,7 @@ const Dashboard: React.FC = () => {
 
   const fetchRoles = useCallback(async () => {
     try {
-      const response: HttpResponse <RoleData[]> = await axiosInstance.get(
+      const response: HttpResponse<RoleData[]> = await axiosInstance.get(
         '/Roles/List'
       )
       if (response.data.status && Array.isArray(response.data.data)) {
@@ -55,7 +55,7 @@ const Dashboard: React.FC = () => {
   const fetchPermissions = useCallback(async () => {
     setIsLoadingPermissions(true)
     try {
-      const response: HttpResponse <string[]> = await axiosInstance.get(
+      const response: HttpResponse<string[]> = await axiosInstance.get(
         '/Claims/List'
       )
       if (response.data.status && Array.isArray(response.data.data)) {
@@ -80,7 +80,7 @@ const Dashboard: React.FC = () => {
     if (!role) return
 
     try {
-      const response: HttpResponse <string[]> = await axiosInstance.get(
+      const response: HttpResponse<string[]> = await axiosInstance.get(
         `/Claims/GetByRole?roleName=${encodeURIComponent(roleName)}`
       )
       if (response.data.status && Array.isArray(response.data.data)) {
@@ -101,7 +101,7 @@ const Dashboard: React.FC = () => {
   }) => {
     setIsUpdatingPermissions(true)
     try {
-      const response: HttpResponse <null> = await axiosInstance.post(
+      const response: HttpResponse<null> = await axiosInstance.post(
         '/Claims/AddToRole',
         {
           roleName: values.roleName,
@@ -137,7 +137,7 @@ const Dashboard: React.FC = () => {
   const handleCreateRole = async (roleName: string) => {
     setIsCreatingRole(true)
     try {
-      const response: HttpResponse <null> = await axiosInstance.get(
+      const response: HttpResponse<null> = await axiosInstance.get(
         `/Roles/Create?roleName=${encodeURIComponent(roleName)}`
       )
       if (response.data.status) {
@@ -159,8 +159,6 @@ const Dashboard: React.FC = () => {
   const filteredRoles = roles.filter((role) =>
     role.name.toLowerCase().includes(searchText.toLowerCase())
   )
-
-  console.log('selectedRole', selectedRole)
 
   return (
     <SidebarLayout>

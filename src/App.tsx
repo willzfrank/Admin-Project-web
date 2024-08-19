@@ -7,6 +7,11 @@ import {
 } from './components/util/ProtectedRoute'
 import { Toaster } from 'react-hot-toast'
 import UserManagement from './page/user-management/UserManagement'
+import IssueManagement from './page/issue-management/IssueManagement'
+import ProjectManagement from './page/project-management/page'
+import CompanyManagement from './page/company-management/CompanyManagement'
+import CompanyDetailsPage from './page/company-management/slug/CompanyDetails'
+
 
 function App() {
   return (
@@ -30,6 +35,38 @@ function App() {
           element={
             <ProtectedRoute>
               <UserManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/issue-management"
+          element={
+            <ProtectedRoute>
+              <IssueManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/company-management"
+          element={
+            <ProtectedRoute>
+              <CompanyManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/company-management/:id"
+          element={
+            <ProtectedRoute>
+              <CompanyDetailsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/project-management"
+          element={
+            <ProtectedRoute>
+              <ProjectManagement />
             </ProtectedRoute>
           }
         />

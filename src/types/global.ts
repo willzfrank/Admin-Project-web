@@ -22,6 +22,86 @@ export interface UserData {
   permissions?: string[]
 }
 
+export type TaskStatusType = 'Todo' | 'InProgress' | 'OnHold' | 'Done'
+
+export type Project = {
+  id: string
+  name: string
+  companyId: string
+}
+
+export type Phase = {
+  code: string
+  status: TaskStatusType
+  projectId: string
+  project: null | Project
+  creatorId: string
+  creator: null | User
+  supervisorId: null | string
+  supervisor: null | User
+  name: string
+  description: string
+  id: string
+  createdAt: string
+  updatedAt: null | string
+  issues: {
+    total: number
+    resolved: number
+    unresolved: number
+  }
+}
+
+export type SeverityType = 'Informational' | 'Warning' | 'Critical'
+
+export type IssueStatusType = 'Active' | 'Inactive'
+
+export type ProjectStatusType = 'Todo' | 'InProgress' | 'OnHold' | 'Done'
+
+export interface Issue {
+  id: string
+  createdAt: string
+  name: string
+  description: string
+  phase: null | Phase
+  severity: SeverityType
+  status: IssueStatusType
+  code: string
+}
+
+export type NewProjectData = {
+  name: string
+  description: string
+  status: ProjectStatusType
+  supervisorId?: string
+  companyId: string
+  documents: string[]
+}
+
+export interface ProjectData extends NewProjectData {
+  code: string
+  creatorId: string
+  creator: string | null
+  supervisor: string | null
+  company: string | null
+  id: string
+  createdAt: string
+  updatedAt: string | null
+}
+
+export interface Company {
+  isActive: boolean
+  documents: never[]
+  code: string
+  email: string
+  phoneNumber: string
+  creatorId: string
+  name: string
+  description: string
+  id: string
+  createdAt: string
+  updatedAt: string
+}
+
 export interface CompanyData {
   id: string
   name: string
