@@ -1,6 +1,6 @@
-import React, { ChangeEvent, useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Table, Spin } from 'antd'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { SortOrder } from 'antd/lib/table/interface'
 import { LoadingOutlined } from '@ant-design/icons'
@@ -11,6 +11,8 @@ import Button from '../../components/commons/Button'
 import Modal from '../../components/Modals/Modal'
 import BackArrow from '../../components/commons/BackArrow'
 import IssueActions from '../../components/IssueAction'
+import { useBackButton } from '../../Hooks/useBackButton'
+import AddnewIssuesModal from '../../components/Modals/Issues/AddNewIssuesModal'
 
 interface Props {
   data: Issue[]
@@ -60,15 +62,10 @@ const IssueManagementContent: React.FC<Props> = ({ data, isLoading }) => {
     description: '',
     phaseId: '',
     severity: '',
-    documents: [],
+    documents: [] as File[],
   })
 
-  const [ripplePosition, setRipplePosition] = useState<{
-    x: number
-    y: number
-  } | null>(null)
-
-  const navigate = useNavigate()
+  const { handleBackButton, ripplePosition } = useBackButton()
 
   const fetchPhases = async () => {
     setIsFetchPhaseLoading(true)
@@ -76,7 +73,7 @@ const IssueManagementContent: React.FC<Props> = ({ data, isLoading }) => {
       const response = await axiosInstance.get<{ data: Phase[] }>(
         '/Phases/ViewAll'
       )
-      // setPhases(response?.data)
+      setPhases(response?.data?.data)
     } catch (error) {
       console.error('Error fetching phases:', error)
       toast.error('Failed to fetch phases. Please try again.')
@@ -85,19 +82,18 @@ const IssueManagementContent: React.FC<Props> = ({ data, isLoading }) => {
     }
   }
 
-  const handleInputChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target
-    setNewIssue((prev) => ({ ...prev, [name]: value }))
+  const handleChange = (e: { target: { name: string; value: string } }) => {
+    setNewIssue({
+      ...newIssue,
+      [e.target.name]: e.target.value,
+    })
   }
 
-  const handleBackButton = (event: React.MouseEvent<HTMLDivElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect()
-    const x = event.clientX - rect.left
-    const y = event.clientY - rect.top
-    setRipplePosition({ x, y })
-    navigate(-1)
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewIssue({
+      ...newIssue,
+      documents: Array.from(e.target.files || []), // Convert FileList to array
+    })
   }
 
   const handleResolveIssue = (issueId: string) => {
@@ -241,31 +237,54 @@ const IssueManagementContent: React.FC<Props> = ({ data, isLoading }) => {
     },
   ]
 
+  const validateForm = () => {
+    const { name, description, phaseId, severity } = newIssue
+    return name && description && phaseId && severity
+  }
+
+  const clearForm = () => {
+    setNewIssue({
+      name: '',
+      description: '',
+      phaseId: '',
+      severity: '',
+      documents: [],
+    })
+  }
+
   const handleSubmit = async () => {
+    if (!validateForm()) {
+      toast.error('Please fill in all fields.')
+      return
+    }
+
     setIsSubmitting(true)
+
     try {
-      const response = await axiosInstance.post('/Issues/Create', newIssue)
-      console.log('Issue created:', response.data)
-      toast.success('Issue created successfully')
-      setIssueDetailsOpen(false)
-      // You might want to refresh the issues list here
+      const { name, description, phaseId, severity, documents } = newIssue
+
+      // Create an object with the form data
+      const issueData = {
+        name,
+        description,
+        phaseId,
+        severity,
+        documents: documents.map((file) => file.name),
+      }
+
+      // Send the data as JSON
+      const response = await axiosInstance.post('/Issues/Create', issueData)
+
+      if (response.status === 201) {
+        toast.success('Issue created successfully')
+        clearForm()
+      }
     } catch (error) {
-      console.error('Error creating issue:', error)
-      toast.error('Failed to create issue. Please try again.')
+      toast.error('Failed to create the issue. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
   }
-
-  useEffect(() => {
-    if (ripplePosition) {
-      const timer = setTimeout(() => {
-        setRipplePosition(null)
-      }, 600)
-
-      return () => clearTimeout(timer)
-    }
-  }, [ripplePosition])
 
   useEffect(() => {
     if (issueDetailsOpen) {
@@ -306,7 +325,7 @@ const IssueManagementContent: React.FC<Props> = ({ data, isLoading }) => {
               columns={columns}
               dataSource={data}
               pagination={{ position: ['bottomRight'], pageSize: 10 }}
-              scroll={{ x: 800 }} // This ensures horizontal scrolling for the table on small screens
+              scroll={{ x: 800 }}
             />
           </div>
         )}
@@ -448,6 +467,8 @@ const IssueManagementContent: React.FC<Props> = ({ data, isLoading }) => {
         )}
       </Modal>
 
+      {/* EDIT */}
+
       <Modal
         isOpen={issueDetailsOpen}
         onClose={() => setIssueDetailsOpen(false)}
@@ -463,7 +484,7 @@ const IssueManagementContent: React.FC<Props> = ({ data, isLoading }) => {
         ) : (
           <div>
             <h2 className="text-left md:text-base text-sm mb-5 md:mb-10">
-              New Issue
+              Edit Issue
             </h2>
 
             <div>
@@ -474,7 +495,7 @@ const IssueManagementContent: React.FC<Props> = ({ data, isLoading }) => {
                   </label>
                   <select
                     name="phaseId"
-                    onChange={handleInputChange}
+                    onChange={handleChange}
                     value={newIssue.phaseId}
                     className="text-gray-600 text-sm px-2.5 py-1.5 my-1.5 border border-[#E5E7EB]"
                   >
@@ -492,10 +513,11 @@ const IssueManagementContent: React.FC<Props> = ({ data, isLoading }) => {
                   </label>
                   <input
                     type="text"
+                    name="name"
                     placeholder="Enter Issue"
                     className="text-gray-600 text-sm px-1.5 py-1.5 my-1.5 border border-[#E5E7EB]"
                     value={newIssue.name}
-                    onChange={handleInputChange}
+                    onChange={handleChange}
                   />
                 </div>
               </div>
@@ -504,41 +526,24 @@ const IssueManagementContent: React.FC<Props> = ({ data, isLoading }) => {
                   Description<span className="text-red-500"> *</span>
                 </label>
                 <textarea
+                  name="description"
                   placeholder="Mismatch in issue number"
                   className="text-gray-600 text-sm px-1.5 py-1.5 my-1.5 h-20 border border-[#E5E7EB]"
                   value={newIssue.description}
-                  onChange={handleInputChange}
+                  onChange={handleChange}
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center justify-between w-full my-5">
                 <div className="flex flex-col gap-2">
                   <h3>Add Media</h3>
-
-                  <span>Select media files </span>
-                  {/* make this dynamic if images selected */}
-                  <div className="flex flex-col gap-2">
-                    <div className="grid grid-cols-2">
-                      <Link
-                        className="text-xs text-blue-800"
-                        target="_blank"
-                        to={`https://example.com`}
-                      >
-                        IMG-001.PNG
-                      </Link>
-                      <div className="text-xs text-red-600">Delete</div>
-                    </div>
-                    <div className="grid grid-cols-2">
-                      <Link
-                        className="text-xs text-blue-800"
-                        target="_blank"
-                        to={`https://example.com`}
-                      >
-                        IMG-002.PNG
-                      </Link>
-                      <div className="text-xs text-red-600">Delete</div>
-                    </div>
-                  </div>
+                  <input
+                    type="file"
+                    name="documents"
+                    multiple
+                    onChange={handleChange}
+                    className="text-sm"
+                  />
                 </div>
                 <div className="flex flex-col gap-2">
                   <label htmlFor="severity">
@@ -546,7 +551,7 @@ const IssueManagementContent: React.FC<Props> = ({ data, isLoading }) => {
                   </label>
                   <select
                     name="severity"
-                    onChange={handleInputChange}
+                    onChange={handleChange}
                     value={newIssue.severity}
                     className="text-gray-600 text-sm px-1.5 py-1.5 my-1.5 border border-[#E5E7EB]"
                   >
@@ -584,6 +589,19 @@ const IssueManagementContent: React.FC<Props> = ({ data, isLoading }) => {
           </div>
         )}
       </Modal>
+
+      <AddnewIssuesModal
+        issueDetailsOpen={issueDetailsOpen}
+        setIssueDetailsOpen={setIssueDetailsOpen}
+        handleChange={handleChange}
+        newIssue={newIssue}
+        phases={phases}
+        handleModalDetailsClose={handleModalDetailsClose}
+        handleSubmit={handleSubmit}
+        isSubmitting={isSubmitting}
+        handleFileChange={handleFileChange}
+        isFetchPhaseLoading={isFetchPhaseLoading}
+      />
     </div>
   )
 }

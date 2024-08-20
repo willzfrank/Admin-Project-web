@@ -57,10 +57,10 @@ export type IssueStatusType = 'Unresolved' | 'Resolved'
 
 export type statusType = 'Active' | 'Inactive'
 
-
 export type ProjectStatusType = 'Todo' | 'InProgress' | 'OnHold' | 'Done'
 
 export interface Issue {
+  phaseId: string | number | readonly string[] | undefined
   id: string
   createdAt: string
   name: string
@@ -164,3 +164,10 @@ export interface Response<T> {
 }
 
 export interface HttpResponse<T> extends AxiosResponse<Response<T>> {}
+
+export type ActivityLogEntry = {
+  id: string
+  createdAt: string
+  summary: string
+  user: null | string
+}

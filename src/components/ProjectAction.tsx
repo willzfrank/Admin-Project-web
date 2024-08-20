@@ -3,35 +3,52 @@ import toast from 'react-hot-toast'
 import axiosInstance from './util/AxiosInstance'
 
 type ProjectActionsProps = {
-  issueId: string
+  projectId: string
+  status: string
   handleResolveIssue: () => void
-  handleIssueDetails: () => void
+  handleProjectDetails: () => void
   handleEditProject: () => void
-}
-
-const reopenIssue = async (issueId: string) => {
-  try {
-    const response = await axiosInstance.get(
-      `/Issues/Reopen?IssueId=${issueId}`
-    )
-
-    if (response.status === 200) {
-      toast.success('Issue reopened successfully')
-      setTimeout(() => {
-        window.location.reload()
-      }, 2000)
-    }
-  } catch (error) {
-    toast.error('Failed to reopen issue. Please try again.')
-  }
+  refreshData: () => void
 }
 
 const ProjectAction: React.FC<ProjectActionsProps> = ({
-  issueId,
+  projectId,
+  status,
   handleResolveIssue,
-  handleIssueDetails,
+  handleProjectDetails,
   handleEditProject,
+  refreshData,
 }) => {
+  const handleStatusChange = async () => {
+    try {
+      let response
+      if (status === 'Done') {
+        response = await axiosInstance.get(
+          `/Projects/Reopen?ProjectId=${projectId}`
+        )
+      } else {
+        response = await axiosInstance.get(
+          `/Projects/Close?ProjectId=${projectId}`
+        )
+      }
+
+      if (response.status === 200) {
+        toast.success(
+          `Project ${
+            status === 'Done' ? 'reopened' : 'marked as done'
+          } successfully`
+        )
+        refreshData() // Call the refreshData function to update the table
+      }
+    } catch (error) {
+      toast.error(
+        `Failed to ${
+          status === 'Done' ? 'reopen' : 'close'
+        } project. Please try again.`
+      )
+    }
+  }
+
   return (
     <div className="items-center flex justify-center flex-col">
       <span
@@ -42,19 +59,21 @@ const ProjectAction: React.FC<ProjectActionsProps> = ({
       </span>
       <span
         className="w-max cursor-pointer hover:underline"
-        onClick={handleIssueDetails}
+        onClick={handleProjectDetails}
       >
         More Details
       </span>
       <div className="cursor-pointer hover:underline">
-        <Link to={`/activity-log/${issueId}`}>View history</Link>
+        <Link to={`/project-management/${projectId}`}>View history</Link>
       </div>
 
       <span
-        className="text-blue-500 cursor-pointer w-max hover:underline"
-        onClick={handleResolveIssue}
+        className={`cursor-pointer w-max hover:underline ${
+          status === 'Done' ? 'text-[#9a1012]' : 'text-[#2722ff]'
+        }`}
+        onClick={handleStatusChange}
       >
-        Mark as Done
+        {status === 'Done' ? 'Reopen' : 'Mark as Done'}{' '}
       </span>
     </div>
   )

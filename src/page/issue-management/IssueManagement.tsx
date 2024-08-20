@@ -8,22 +8,19 @@ const IssueManagement = () => {
   const [data, setData] = useState<Issue[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true)
-      try {
-        const savedProjectId = localStorage.getItem('selectedProject')
-        const response = await axiosInstance.get(
-          `/Issues/GetByProject?ProjectId=${savedProjectId}`
-        )
-        setData(response?.data?.data)
-      } catch (error) {
-        console.error('Error fetching issues by project:', error)
-      } finally {
-        setLoading(false) // Set loading to false after fetching completes
-      }
+  const fetchData = async () => {
+    setLoading(true)
+    try {
+      const response = await axiosInstance.get(`/Issues/ViewAll`)
+      setData(response?.data?.data)
+    } catch (error) {
+      console.error('Error fetching issues:', error)
+    } finally {
+      setLoading(false)
     }
+  }
 
+  useEffect(() => {
     fetchData()
   }, [])
 

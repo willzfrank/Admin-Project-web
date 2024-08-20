@@ -34,6 +34,7 @@ const IssueActions: React.FC<IssueActionsProps> = ({
 }) => {
   return (
     <div className="items-center flex justify-center flex-col">
+      <span className="w-max cursor-pointer hover:underline">Edit</span>
       {issueStatus === 'Resolved' && (
         <span
           className="text-amber-700 cursor-pointer hover:underline"

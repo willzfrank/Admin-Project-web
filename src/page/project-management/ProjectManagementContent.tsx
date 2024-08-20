@@ -51,7 +51,7 @@ const ProjectManagementContent: React.FC<Props> = ({
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null)
   const [selectedCode, setSelectedCode] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [issueDetails, setIssueDetails] = useState<ProjectData>()
+  const [projectDetails, setProjectDetails] = useState<ProjectData>()
   const [projectModalOpen, setProjectModalOpen] = useState<boolean>(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isFetchCompanyLoading, setIsFetchCompanyLoading] = useState(false)
@@ -127,7 +127,7 @@ const ProjectManagementContent: React.FC<Props> = ({
     setSelectedIssueId(null)
   }
 
-  const handleIssueDetails = (code: string) => {
+  const handleProjectDetails = (code: string) => {
     setIsModalDetailsOpen(true)
     setSelectedCode(code)
     if (code) {
@@ -138,7 +138,7 @@ const ProjectManagementContent: React.FC<Props> = ({
   const handleModalDetailsClose = () => {
     setIsModalDetailsOpen(false)
     setSelectedCode(null)
-    setIssueDetails(undefined)
+    setProjectDetails(undefined)
   }
 
   const handleCloseIssue = async () => {
@@ -164,8 +164,10 @@ const ProjectManagementContent: React.FC<Props> = ({
   const fetchData = async (code: string) => {
     try {
       setIsClosedLoading(true)
-      const response = await axiosInstance.get(`/Issues/GetByCode?code=${code}`)
-      setIssueDetails(response.data.data)
+      const response = await axiosInstance.get(
+        `/Projects/GetByCode?code=${code}`
+      )
+      setProjectDetails(response.data.data)
     } catch (error) {
       toast.error('Failed to fetch data. Please try again.')
       setError('Failed to fetch activity log. Please try again later.')
@@ -173,6 +175,8 @@ const ProjectManagementContent: React.FC<Props> = ({
       setIsClosedLoading(false)
     }
   }
+
+  console.log('projectDetails', projectDetails)
 
   const columns = [
     {
@@ -245,12 +249,14 @@ const ProjectManagementContent: React.FC<Props> = ({
       render: (record: ProjectData) => (
         <span className="text-xs py-4 p-6 font-medium flex items-center justify-center">
           <ProjectAction
-            issueId={record.id}
+            projectId={record.id}
+            status={record.status}
             handleResolveIssue={() => handleResolveIssue(record.id)}
-            handleIssueDetails={() => handleIssueDetails(record.code)}
+            handleProjectDetails={() => handleProjectDetails(record.code)}
             handleEditProject={() => {
               handleEditProject(record.id)
             }}
+            refreshData={fetchProjectData}
           />
         </span>
       ),
@@ -405,7 +411,7 @@ const ProjectManagementContent: React.FC<Props> = ({
           </div>
         ) : (
           <div>
-            <h2 className="text-left md:text-base text-sm mb-5 md:mb-10">
+            <h2 className="text-left md:text-base text-sm font-bold mb-5 md:mb-10">
               Project Details
             </h2>
 
@@ -418,8 +424,8 @@ const ProjectManagementContent: React.FC<Props> = ({
                   <input
                     type="text"
                     placeholder="Plumbing"
-                    className="text-gray-600 text-sm px-2.5 py-1.5 my-1.5 border border-[#E5E7EB]"
-                    value={issueDetails?.name || ''}
+                    className="text-gray-600 text-sm px-2.5 py-1.5 my-1.5 border border-[#E5E7EB] cursor-not-allowed outline-none"
+                    value={projectDetails?.company || ''}
                     readOnly
                   />
                 </div>
@@ -430,8 +436,8 @@ const ProjectManagementContent: React.FC<Props> = ({
                   <input
                     type="text"
                     placeholder="Invalid configuration"
-                    className="text-gray-600 text-sm px-1.5 py-1.5 my-1.5 border border-[#E5E7EB]"
-                    value={issueDetails?.name}
+                    className="text-gray-600 text-sm px-1.5 py-1.5 my-1.5 border border-[#E5E7EB] cursor-not-allowed outline-none"
+                    value={projectDetails?.name}
                     readOnly
                   />
                 </div>
@@ -442,8 +448,8 @@ const ProjectManagementContent: React.FC<Props> = ({
                 </label>
                 <textarea
                   placeholder="Mismatch in issue number"
-                  className="text-gray-600 text-sm px-1.5 py-1.5 my-1.5 h-20 border border-[#E5E7EB]"
-                  value={issueDetails?.description}
+                  className="text-gray-600 text-sm px-1.5 py-1.5 my-1.5 h-20 border border-[#E5E7EB] cursor-not-allowed outline-none"
+                  value={projectDetails?.description}
                   readOnly
                 />
               </div>
@@ -481,8 +487,8 @@ const ProjectManagementContent: React.FC<Props> = ({
                   <input
                     type="text"
                     placeholder="Informational"
-                    className="text-gray-600 text-sm px-1.5 py-1.5 my-1.5 border border-[#E5E7EB]"
-                    // value={issueDetails?.severity}
+                    className="text-gray-600 text-sm px-1.5 py-1.5 my-1.5 border border-[#E5E7EB] cursor-not-allowed outline-none"
+                    value={projectDetails?.status}
                     readOnly
                   />
                 </div>
@@ -497,7 +503,7 @@ const ProjectManagementContent: React.FC<Props> = ({
                 type="button"
                 size="small"
                 action={handleModalDetailsClose}
-                className="gap-2 border border-black text-xs px-12 md:text-sm text-black"
+                className="gap-2 border border-black text-xs px-[50px] md:text-sm text-black"
               />
             </div>
           </div>

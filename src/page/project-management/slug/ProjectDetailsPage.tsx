@@ -12,7 +12,7 @@ import SidebarLayout from '../../../layouts/Sidebar'
 
 const { Text } = Typography
 
-const CompanyDetails = () => {
+const ProjectDetailsPage = () => {
   const [data, setData] = useState<ActivityLogEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -20,15 +20,15 @@ const CompanyDetails = () => {
     key: keyof ActivityLogEntry
     direction: 'asc' | 'desc'
   } | null>(null)
-  const { companyId } = useParams<{ companyId: string }>()
+  const { projectId } = useParams<{ projectId: string }>()
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true)
       try {
-        if (companyId) {
+        if (projectId) {
           const response = await axiosInstance.get(
-            `/Changes/GetByCompany?CompanyId=${companyId}`
+            `/Changes/GetByProject?ProjectId=${projectId}`
           )
           setData(response?.data?.data || [])
         }
@@ -41,7 +41,7 @@ const CompanyDetails = () => {
     }
 
     fetchData()
-  }, [companyId])
+  }, [projectId])
 
   const { handleBackButton, ripplePosition } = useBackButton()
 
@@ -146,42 +146,40 @@ const CompanyDetails = () => {
 
   return (
     <SidebarLayout>
-      <div className="px-4 md:px-20">
-        <BackArrow
-          handleBackButton={handleBackButton}
-          ripplePosition={ripplePosition}
-          title="Company History"
-        />
-        <div className="bg-gray-200 w-full md:p-8 md:pb-0 mx-auto">
-          <div className="w-full">
-            {isLoading ? (
-              <div className="flex items-center justify-center">
-                <Spin
-                  indicator={<LoadingOutlined spin />}
-                  className="text-black"
-                  size="large"
-                />
-              </div>
-            ) : error ? (
-              <p className="text-red-500 text-center">{error}</p>
-            ) : data.length === 0 ? (
-              <p className="text-center">
-                No history log found for this company.
-              </p>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table
-                  columns={columns}
-                  dataSource={data}
-                  pagination={{ position: ['bottomRight'], pageSize: 5 }}
-                />
-              </div>
-            )}
-          </div>
+    <div className="px-4 md:px-20">
+      <BackArrow
+        handleBackButton={handleBackButton}
+        ripplePosition={ripplePosition}
+        title="Project History"
+      />
+      <div className="bg-gray-200 w-full md:p-8 md:pb-0 mx-auto">
+        <div className="w-full">
+          {isLoading ? (
+            <div className="flex items-center justify-center">
+              <Spin
+                indicator={<LoadingOutlined spin />}
+                className="text-black"
+                size="large"
+              />
+            </div>
+          ) : error ? (
+            <p className="text-red-500 text-center">{error}</p>
+          ) : data.length === 0 ? (
+            <p className="text-center">No history log found for this project.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table
+                columns={columns}
+                dataSource={data}
+                pagination={{ position: ['bottomRight'], pageSize: 5 }}
+              />
+            </div>
+          )}
         </div>
       </div>
+    </div>
     </SidebarLayout>
   )
 }
 
-export default CompanyDetails
+export default ProjectDetailsPage
