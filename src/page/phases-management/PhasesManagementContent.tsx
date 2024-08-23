@@ -3,7 +3,7 @@ import { Table, Spin } from 'antd'
 import toast from 'react-hot-toast'
 import { SortOrder } from 'antd/lib/table/interface'
 import { LoadingOutlined } from '@ant-design/icons'
-import { Issue, IssueStatusType, Phase, SeverityType } from '../../types/global'
+import { Issue, IssueStatusType, Phase, ProjectStatusType, SeverityType } from '../../types/global'
 import { formatDate } from '../../components/util/formatdate'
 import axiosInstance from '../../components/util/AxiosInstance'
 import Button from '../../components/commons/Button'
@@ -13,14 +13,12 @@ import IssueActions from '../../components/IssueAction'
 import { useBackButton } from '../../Hooks/useBackButton'
 import AddnewIssuesModal from '../../components/Modals/Issues/AddNewIssuesModal'
 import IssueDetailsModal from '../../components/Modals/Issues/IssueDetailsModal'
-import { v4 as uuidv4 } from 'uuid'
-import { USER_KEY } from '../../components/util/constant'
-import EditIssueModal from '../../components/Modals/Issues/EditIssueModal'
+import PhasesAction from '../../components/PhasesAction'
+import { getStatusClass } from '../../components/util/getStatusClassName'
 
-interface IssueManagementContentProps {
-  data: Issue[]
+interface Props {
+  data: Phase[]
   isLoading: boolean
-  fetchIssues: () => Promise<void>
 }
 
 const getSeverityClass = (severity: SeverityType): string => {
@@ -36,37 +34,29 @@ const getSeverityClass = (severity: SeverityType): string => {
   }
 }
 
-const getStatusClass = (status: IssueStatusType): string => {
-  switch (status) {
-    case 'Unresolved':
-      return 'text-amber-700'
-    case 'Resolved':
-      return 'text-blue-500'
-    default:
-      return 'text-black-200'
-  }
-}
+// const getStatusClass = (status: IssueStatusType): string => {
+//   switch (status) {
+//     case 'Unresolved':
+//       return 'text-amber-700'
+//     case 'Resolved':
+//       return 'text-blue-500'
+//     default:
+//       return 'text-black-200'
+//   }
+// }
 
-const IssueManagementContent: React.FC<IssueManagementContentProps> = ({
-  data,
-  isLoading,
-  fetchIssues,
-}) => {
+const PhasesManagementContent: React.FC<Props> = ({ data, isLoading }) => {
   const [isResolveModalOpen, setIsResolveModalOpen] = useState(false)
   const [isModalDetailsOpen, setIsModalDetailsOpen] = useState(false)
   const [isClosedLoading, setIsClosedLoading] = useState(false)
 
-  const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null)
+  const [selectedPhaseId, setSelectedPhaseId] = useState<string | null>(null)
   const [selectedCode, setSelectedCode] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [issueDetails, setIssueDetails] = useState<Issue>()
   const [issueDetailsOpen, setIssueDetailsOpen] = useState<boolean>(false)
-  const [issueEditOpen, setIssueEditOpen] = useState<boolean>(false)
-  const [isEditingSubmitting, setIsEditingSubmitting] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isFetchPhaseLoading, setIsFetchPhaseLoading] = useState(false)
-  const [userId, setUserId] = useState<string | null>(null)
-  const [editIssueData, setEditingData] = useState<Issue>()
 
   const [phases, setPhases] = useState<Phase[]>([])
   const [newIssue, setNewIssue] = useState({
@@ -77,16 +67,7 @@ const IssueManagementContent: React.FC<IssueManagementContentProps> = ({
     documents: [] as File[],
   })
 
-  useEffect(() => {
-    const authDataString = localStorage.getItem(USER_KEY)
-    if (authDataString) {
-      const authData = JSON.parse(authDataString)
-      setUserId(authData.id)
-    }
-  }, [])
-
   const { handleBackButton, ripplePosition } = useBackButton()
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
 
   const fetchPhases = async () => {
     setIsFetchPhaseLoading(true)
@@ -110,21 +91,24 @@ const IssueManagementContent: React.FC<IssueManagementContentProps> = ({
     })
   }
 
-  const handleFileChange = (files: File[]) => {
-    setUploadedFiles(files)
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewIssue({
+      ...newIssue,
+      documents: Array.from(e.target.files || []), // Convert FileList to array
+    })
   }
 
-  const handleResolveIssue = (issueId: string) => {
+  const handleResolvePhase = (PhaseId: string) => {
     setIsResolveModalOpen(true)
-    setSelectedIssueId(issueId)
+    setSelectedPhaseId(PhaseId)
   }
 
   const handleModalClose = () => {
     setIsResolveModalOpen(false)
-    setSelectedIssueId(null)
+    setSelectedPhaseId(null)
   }
 
-  const handleIssueDetails = (code: string) => {
+  const handlePhaseDetails = (code: string) => {
     setIsModalDetailsOpen(true)
     setSelectedCode(code)
     if (code) {
@@ -138,24 +122,12 @@ const IssueManagementContent: React.FC<IssueManagementContentProps> = ({
     setIssueDetails(undefined)
   }
 
-  const handleModalEditClose = () => {
-    setIssueEditOpen(false)
-  }
-
-  const handleEditIssue = (id: string) => {
-    setIssueEditOpen(true)
-    const issueToEdit = data.find((issue) => issue.id === id)
-    if (issueToEdit) {
-      setEditingData(issueToEdit)
-    }
-  }
-
-  const handleCloseIssue = async () => {
-    if (!selectedIssueId) return
+  const handleClosePhase = async () => {
+    if (!selectedPhaseId) return
     setIsClosedLoading(true)
     try {
       const response = await axiosInstance.get(
-        `/Issues/Close?IssueId=${selectedIssueId}`
+        `/Phases/Close?PhaseId=${selectedPhaseId}`
       )
 
       if (response.status === 200) {
@@ -187,10 +159,10 @@ const IssueManagementContent: React.FC<IssueManagementContentProps> = ({
 
   const columns = [
     {
-      title: <div style={{ textAlign: 'center' }}>Date</div>,
+      title: <div style={{ textAlign: 'center' }}>Created on</div>,
       dataIndex: 'createdAt',
       key: 'createdAt',
-      sorter: (a: Issue, b: Issue) => a.createdAt.localeCompare(b.createdAt),
+      sorter: (a: Phase, b: Phase) => a.createdAt.localeCompare(b.createdAt),
       sortDirections: ['ascend', 'descend'] as SortOrder[],
       render: (text: string) => (
         <span className="text-xs py-4 px-6 flex items-end justify-end font-medium">
@@ -199,37 +171,39 @@ const IssueManagementContent: React.FC<IssueManagementContentProps> = ({
       ),
     },
     {
-      title: <div style={{ textAlign: 'center' }}>Issue</div>,
+      title: <div style={{ textAlign: 'center' }}>Phase</div>,
       dataIndex: 'name',
       key: 'name',
-      sorter: (a: Issue, b: Issue) => a.name.localeCompare(b.name),
-      sortDirections: ['ascend', 'descend'] as SortOrder[],
-      render: (text: string) => (
-        <span className="text-xs py-4 flex items-end justify-end  px-6 font-medium">
-          {text}
-        </span>
-      ),
-    },
-    {
-      title: <div style={{ textAlign: 'center' }}>Phase</div>,
-      dataIndex: ['phase', 'name'],
-      key: 'phase',
-      sorter: (a: Issue, b: Issue) =>
-        (a.phase?.name || '').localeCompare(b.phase?.name || ''),
+      sorter: (a: Phase, b: Phase) =>
+        (a?.name || '').localeCompare(b?.name || ''),
       sortDirections: ['ascend', 'descend'] as SortOrder[],
       render: (text: string) => (
         <span className="text-xs py-4 px-6 font-medium">{text || 'N/A'}</span>
       ),
     },
     {
-      title: <div style={{ textAlign: 'center' }}>Severity</div>,
-      dataIndex: 'severity',
-      key: 'severity',
-      sorter: (a: Issue, b: Issue) => a.severity.localeCompare(b.severity),
+      title: <div style={{ textAlign: 'center' }}>Company</div>,
+      dataIndex: ['company', 'name'],
+
+      key: 'company',
+      sorter: (a: Phase, b: Phase) =>
+        (a.company?.name || 'N/A').localeCompare(b.company?.name || 'N/A'),
       sortDirections: ['ascend', 'descend'] as SortOrder[],
-      render: (text: SeverityType) => (
+      render: (text: string) => (
+        <span className="text-xs py-4 flex items-end justify-end px-6 font-medium">
+          {text || 'N/A'}
+        </span>
+      ),
+    },
+    {
+      title: <div style={{ textAlign: 'center' }}>Status</div>,
+      dataIndex: 'status',
+      key: 'status',
+      sorter: (a: Phase, b: Phase) => a.status.localeCompare(b.status),
+      sortDirections: ['ascend', 'descend'] as SortOrder[],
+      render: (text: ProjectStatusType) => (
         <span
-          className={`py-4 text-xs flex items-center justify-center  font-medium px-6 ${getSeverityClass(
+          className={`py-4 text-xs font-medium px-6 flex items-center justify-center ${getStatusClass(
             text
           )}`}
         >
@@ -238,65 +212,20 @@ const IssueManagementContent: React.FC<IssueManagementContentProps> = ({
       ),
     },
     {
-      title: <div style={{ textAlign: 'center' }}>Status</div>,
-      dataIndex: 'status',
-      key: 'status',
-      sorter: (a: Issue, b: Issue) => a.status.localeCompare(b.status),
-      sortDirections: ['ascend', 'descend'] as SortOrder[],
-      render: (text: IssueStatusType) => (
-        <span
-          className={`py-4 text-xs font-medium px-6 ${getStatusClass(text)}`}
-        >
-          {text}
-        </span>
-      ),
-    },
-    {
       title: <div style={{ textAlign: 'center' }}>Action</div>,
       key: 'action',
-      render: (record: Issue) => (
+      render: (record: Phase) => (
         <span className="text-xs py-4 p-6 font-medium">
-          <IssueActions
-            issueId={record.id}
-            issueStatus={record.status}
-            handleResolveIssue={() => handleResolveIssue(record.id)}
-            handleIssueDetails={() => handleIssueDetails(record.code)}
-            handleEditIssues={() => {
-              handleEditIssue(record.id)
-            }}
+          <PhasesAction
+            PhaseId={record.id}
+            phasesStatus={record.status}
+            handleResolvePhase={() => handleResolvePhase(record.id)}
+            handlePhaseDetails={() => handlePhaseDetails(record.code)}
           />
         </span>
       ),
     },
   ]
-
-  const handleUpdateIssue = async () => {
-    if (!setEditingData) return
-
-    setIsEditingSubmitting(true)
-    try {
-      const response = await axiosInstance.post('/Issues/Update', {
-        id: editIssueData?.id,
-        name: editIssueData?.name,
-        description: editIssueData?.description,
-        phaseId: editIssueData?.phaseId,
-        severity: editIssueData?.severity,
-        documents: [],
-      })
-
-      if (response.status === 200) {
-        toast.success('Issue updated successfully')
-        setIssueEditOpen(false)
-        fetchIssues()
-      } else {
-        toast.error('Failed to update issue')
-      }
-    } catch (error) {
-      toast.error('Error updating issue')
-    } finally {
-      setIsEditingSubmitting(false)
-    }
-  }
 
   const validateForm = () => {
     const { name, description, phaseId, severity } = newIssue
@@ -311,30 +240,18 @@ const IssueManagementContent: React.FC<IssueManagementContentProps> = ({
       severity: '',
       documents: [],
     })
-    setUploadedFiles([])
   }
 
   const handleSubmit = async () => {
     if (!validateForm()) {
-      toast.error('Please fill in all required fields.')
+      toast.error('Please fill in all fields.')
       return
     }
 
     setIsSubmitting(true)
 
     try {
-      const { name, description, phaseId, severity } = newIssue
-
-      let documentIds: string[] = []
-
-      // Only upload documents if there are any
-      if (uploadedFiles.length > 0) {
-        const uploadPromises = uploadedFiles.map((file) => uploadFile(file))
-        const uploadResults = await Promise.all(uploadPromises)
-        documentIds = uploadResults.filter(
-          (id): id is string => id !== undefined
-        )
-      }
+      const { name, description, phaseId, severity, documents } = newIssue
 
       // Create an object with the form data
       const issueData = {
@@ -342,16 +259,15 @@ const IssueManagementContent: React.FC<IssueManagementContentProps> = ({
         description,
         phaseId,
         severity,
-        documents: documentIds,
+        documents: documents.map((file) => file.name),
       }
 
+      // Send the data as JSON
       const response = await axiosInstance.post('/Issues/Create', issueData)
 
-      if (response.status === 200 || 201) {
+      if (response.status === 201) {
         toast.success('Issue created successfully')
         clearForm()
-        setIssueDetailsOpen(false)
-        fetchIssues()
       }
     } catch (error) {
       toast.error('Failed to create the issue. Please try again.')
@@ -360,43 +276,11 @@ const IssueManagementContent: React.FC<IssueManagementContentProps> = ({
     }
   }
 
-  // Modify the uploadFile function to return the document ID
-  const uploadFile = async (file: File): Promise<string | undefined> => {
-    if (!userId) {
-      toast.error('User not found. Please log in again.')
-      return
-    }
-    const formData = new FormData()
-    formData.append('Id', uuidv4())
-    formData.append('File', file)
-    formData.append('UserId', userId)
-    formData.append('Kind', 'Issue')
-
-    try {
-      const response = await axiosInstance.post(
-        'https://api.buildsense.ng/api/v1/Documents/Upload',
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      )
-
-      if (response.data.status) {
-        return response.data.data.id
-      }
-    } catch (error) {
-      console.error('Error uploading file:', error)
-      toast.error(`Failed to upload ${file.name}`)
-    }
-  }
-
   useEffect(() => {
-    if (issueDetailsOpen || issueEditOpen) {
+    if (issueDetailsOpen) {
       fetchPhases()
     }
-  }, [issueDetailsOpen, issueEditOpen])
+  }, [issueDetailsOpen])
 
   return (
     <div className="px-4">
@@ -404,14 +288,14 @@ const IssueManagementContent: React.FC<IssueManagementContentProps> = ({
         <BackArrow
           handleBackButton={handleBackButton}
           ripplePosition={ripplePosition}
-          title="Issues"
+          title="Phases"
         />
-        <p
-          className="px-2.5 md:px-5 py-1.5 md:py-2.5 mb-0 md:mb-5 border  text-xs md:text-base cursor-pointer"
+        <div
+          className="px-5 py-2.5 mb-5 border  cursor-pointer"
           onClick={() => setIssueDetailsOpen(true)}
         >
-          Add New Issue
-        </p>
+          Add New Phase
+        </div>
       </div>
       <div className="bg-gray-200 w-full md:p-8 p-4 pb-2 mx-auto">
         {isLoading ? (
@@ -431,7 +315,7 @@ const IssueManagementContent: React.FC<IssueManagementContentProps> = ({
             <Table
               columns={columns}
               dataSource={data}
-              pagination={{ position: ['bottomRight'], pageSize: 100 }}
+              pagination={{ position: ['bottomRight'], pageSize: 10 }}
               scroll={{ x: 800 }}
             />
           </div>
@@ -457,7 +341,7 @@ const IssueManagementContent: React.FC<IssueManagementContentProps> = ({
             buttonType="secondary"
             isLoading={isClosedLoading}
             type="button"
-            action={handleCloseIssue}
+            action={handleClosePhase}
             size="small"
             className="w-max gap-2 bg-black text-xs md:text-sm text-white"
           />
@@ -471,32 +355,143 @@ const IssueManagementContent: React.FC<IssueManagementContentProps> = ({
         issueDetails={issueDetails}
       />
 
-      <EditIssueModal
-        issueEditOpen={issueEditOpen}
-        setIssueEditOpen={setIssueEditOpen}
-        isFetchPhaseLoading={isFetchPhaseLoading}
-        setEditingData={setEditingData}
-        editIssueData={editIssueData}
-        phases={phases}
-        handleModalEditClose={handleModalEditClose}
-        handleUpdateIssue={handleUpdateIssue}
-        isEditingSubmitting={isEditingSubmitting}
-      />
+      {/* EDIT */}
 
-      <AddnewIssuesModal
+      <Modal
+        isOpen={issueDetailsOpen}
+        onClose={() => setIssueDetailsOpen(false)}
+      >
+        {isFetchPhaseLoading ? (
+          <div className="flex items-center justify-center">
+            <Spin
+              indicator={<LoadingOutlined spin />}
+              className="text-black"
+              size="large"
+            />
+          </div>
+        ) : (
+          <div>
+            <h2 className="text-left md:text-base text-sm mb-5 md:mb-10">
+              Edit Issue
+            </h2>
+
+            <div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 md:gap-6 items-center justify-between w-full my-2.5 md:my-5">
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="phase">
+                    Phase<span className="text-red-500"> *</span>
+                  </label>
+                  <select
+                    name="phaseId"
+                    onChange={handleChange}
+                    value={newIssue.phaseId}
+                    className="text-gray-600 text-sm px-2.5 py-1.5 my-1.5 border border-[#E5E7EB]"
+                  >
+                    <option value="">Select Phase</option>
+                    {phases.map((phase) => (
+                      <option key={phase.id} value={phase.id}>
+                        {phase.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="phase">
+                    Issue<span className="text-red-500"> *</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    placeholder="Enter Issue"
+                    className="text-gray-600 text-sm px-1.5 py-1.5 my-1.5 border border-[#E5E7EB]"
+                    value={newIssue.name}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <label htmlFor="description">
+                  Description<span className="text-red-500"> *</span>
+                </label>
+                <textarea
+                  name="description"
+                  placeholder="Mismatch in issue number"
+                  className="text-gray-600 text-sm px-1.5 py-1.5 my-1.5 h-20 border border-[#E5E7EB]"
+                  value={newIssue.description}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center justify-between w-full my-5">
+                <div className="flex flex-col gap-2">
+                  <h3>Add Media</h3>
+                  <input
+                    type="file"
+                    name="documents"
+                    multiple
+                    onChange={handleChange}
+                    className="text-sm"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="severity">
+                    Severity<span className="text-red-500"> *</span>
+                  </label>
+                  <select
+                    name="severity"
+                    onChange={handleChange}
+                    value={newIssue.severity}
+                    className="text-gray-600 text-sm px-1.5 py-1.5 my-1.5 border border-[#E5E7EB]"
+                  >
+                    <option value="">Select Severity</option>
+                    <option value="Informational">Informational</option>
+                    <option value="Warning">Warning</option>
+                    <option value="Critical">Critical</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-end gap-5 justify-end mt-6">
+              <Button
+                text="Close"
+                shade="dark"
+                buttonType="default"
+                type="button"
+                size="small"
+                action={handleModalDetailsClose}
+                className="gap-2 border border-black text-xs px-12 md:text-sm text-black"
+              />
+
+              <Button
+                text={isSubmitting ? 'Submitting...' : 'Submit'}
+                shade="dark"
+                buttonType="default"
+                type="button"
+                size="small"
+                action={handleSubmit}
+                disabled={isSubmitting}
+                className="gap-2 border border-black text-xs px-12 md:text-sm text-black"
+              />
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* <AddnewIssuesModal
         issueDetailsOpen={issueDetailsOpen}
         setIssueDetailsOpen={setIssueDetailsOpen}
         handleChange={handleChange}
         newIssue={newIssue}
         phases={phases}
+        handleModalDetailsClose={handleModalDetailsClose}
         handleSubmit={handleSubmit}
         isSubmitting={isSubmitting}
         handleFileChange={handleFileChange}
         isFetchPhaseLoading={isFetchPhaseLoading}
-        uploadedFiles={uploadedFiles}
-      />
+      /> */}
     </div>
   )
 }
 
-export default IssueManagementContent
+export default PhasesManagementContent

@@ -7,6 +7,7 @@ type IssueActionsProps = {
   issueStatus: 'Unresolved' | 'Resolved'
   handleResolveIssue: () => void
   handleIssueDetails: () => void
+  handleEditIssues: () => void
 }
 
 const reopenIssue = async (issueId: string) => {
@@ -31,10 +32,16 @@ const IssueActions: React.FC<IssueActionsProps> = ({
   issueStatus,
   handleResolveIssue,
   handleIssueDetails,
+  handleEditIssues,
 }) => {
   return (
     <div className="items-center flex justify-center flex-col">
-      <span className="w-max cursor-pointer hover:underline">Edit</span>
+      <span
+        className="w-max cursor-pointer hover:underline"
+        onClick={handleEditIssues}
+      >
+        Edit
+      </span>
       {issueStatus === 'Resolved' && (
         <span
           className="text-amber-700 cursor-pointer hover:underline"
@@ -50,7 +57,7 @@ const IssueActions: React.FC<IssueActionsProps> = ({
         More Details
       </span>
       <div className="cursor-pointer hover:underline">
-        <Link to={`/activity-log/${issueId}`}>View history</Link>
+        <Link to={`/issue-management/${issueId}`}>View history</Link>
       </div>
       {issueStatus === 'Unresolved' && (
         <span

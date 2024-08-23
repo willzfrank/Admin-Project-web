@@ -30,25 +30,25 @@ export type Project = {
   companyId: string
 }
 
+export type Creator = {
+  companyId: string | null
+  firstName: string
+  lastName: string
+}
+
 export type Phase = {
+  id: string
   code: string
-  status: TaskStatusType
-  projectId: string
-  project: null | Project
-  creatorId: string
-  creator: null | User
-  supervisorId: null | string
-  supervisor: null | User
   name: string
   description: string
-  id: string
+  projectId: string
   createdAt: string
-  updatedAt: null | string
-  issues: {
-    total: number
-    resolved: number
-    unresolved: number
-  }
+  updatedAt: string | null
+  creatorId: string
+  creator: Creator
+  project: Project
+  company: Company
+  status: ProjectStatusType
 }
 
 export type SeverityType = 'Informational' | 'Warning' | 'Critical'

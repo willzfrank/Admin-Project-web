@@ -160,7 +160,7 @@ const CompanyManagementContent: React.FC<Props> = ({
     {
       title: <div style={{ textAlign: 'center' }}>Status</div>,
       dataIndex: 'isActive', // Change to 'isActive' to match the data property
-      key: 'status',
+      key: 'isActive',
       sorter: (a: Company, b: Company) =>
         a.isActive === b.isActive ? 0 : a.isActive ? -1 : 1,
       sortDirections: ['ascend', 'descend'] as SortOrder[],

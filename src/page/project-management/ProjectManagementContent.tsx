@@ -18,26 +18,12 @@ import { useBackButton } from '../../Hooks/useBackButton'
 import ProjectAction from '../../components/ProjectAction'
 import CreateProjectModal from '../../components/Modals/projects/CreateProjectModal'
 import EditProjectModal from '../../components/Modals/projects/EditProjectModal'
+import { getStatusClass } from '../../components/util/getStatusClassName'
 
 interface Props {
   data: ProjectData[]
   fetchProjectData: any
   isLoading: boolean
-}
-
-const getStatusClass = (status: ProjectStatusType): string => {
-  switch (status) {
-    case 'Todo':
-      return 'text-black'
-    case 'InProgress':
-      return 'text-[#8375ff]'
-    case 'OnHold':
-      return 'text-[#ff878e]'
-    case 'Done':
-      return 'text-[#91a991]'
-    default:
-      return 'text-inherit'
-  }
 }
 
 const ProjectManagementContent: React.FC<Props> = ({

@@ -31,7 +31,7 @@ const BackArrow = (props: Props) => {
         )}
       </div>
 
-      <h2 className="text-xl font-bold">{props.title}</h2>
+      <h2 className="text-base md:text-xl font-bold">{props.title}</h2>
     </div>
   )
 }

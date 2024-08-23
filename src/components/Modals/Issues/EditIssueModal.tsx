@@ -1,53 +1,35 @@
-import React, { useState } from 'react'
 import Modal from '../Modal'
-import { Spin } from 'antd'
 import { LoadingOutlined } from '@ant-design/icons'
-import { Phase } from '../../../types/global'
+import { Spin } from 'antd'
+import { Issue, Phase } from '../../../types/global'
 import Button from '../../commons/Button'
 
-type AddnewIssuesModalProps = {
-  issueDetailsOpen: boolean
-  setIssueDetailsOpen: (args: boolean) => void
+type EditIssueModalProps = {
+  issueEditOpen: boolean
+  setIssueEditOpen: React.Dispatch<React.SetStateAction<boolean>>
   isFetchPhaseLoading: boolean
-  handleChange: (e: { target: { name: string; value: string } }) => void
-  newIssue: {
-    name: string
-    description: string
-    phaseId: string
-    severity: string
-    documents: File[]
-  }
+  setEditingData: React.Dispatch<React.SetStateAction<Issue | undefined>>
+  editIssueData: Issue | undefined
   phases: Phase[]
-  isSubmitting: boolean
-  handleSubmit: () => void
-  handleFileChange: (files: File[]) => void
-  uploadedFiles: File[]
+  handleModalEditClose: () => void
+  handleUpdateIssue: () => Promise<void>
+  isEditingSubmitting: boolean
 }
 
-const AddnewIssuesModal = ({
-  issueDetailsOpen,
-  setIssueDetailsOpen,
+const EditIssueModal = ({
+  issueEditOpen,
+  setIssueEditOpen,
   isFetchPhaseLoading,
-  handleChange,
-  newIssue,
+  setEditingData,
+  editIssueData,
   phases,
-  isSubmitting,
-  handleSubmit,
-  handleFileChange,
-  uploadedFiles,
-}: AddnewIssuesModalProps) => {
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-    const imageFiles = files.filter((file) => file.type.startsWith('image/'))
-    handleFileChange(imageFiles)
-  }
-
+  handleModalEditClose,
+  handleUpdateIssue,
+  isEditingSubmitting,
+}: EditIssueModalProps) => {
   return (
     <>
-      <Modal
-        isOpen={issueDetailsOpen}
-        onClose={() => setIssueDetailsOpen(false)}
-      >
+      <Modal isOpen={issueEditOpen} onClose={() => setIssueEditOpen(false)}>
         {isFetchPhaseLoading ? (
           <div className="flex items-center justify-center">
             <Spin
@@ -57,9 +39,9 @@ const AddnewIssuesModal = ({
             />
           </div>
         ) : (
-          <form>
+          <div>
             <h2 className="text-left md:text-base text-sm mb-5 md:mb-10">
-              New Issue
+              Edit Issue
             </h2>
 
             <div>
@@ -70,8 +52,13 @@ const AddnewIssuesModal = ({
                   </label>
                   <select
                     name="phaseId"
-                    onChange={handleChange}
-                    value={newIssue.phaseId}
+                    onChange={(e) =>
+                      setEditingData((prev) => ({
+                        ...prev!,
+                        name: e.target.value,
+                      }))
+                    }
+                    value={editIssueData?.phaseId}
                     className="text-gray-600 text-sm px-2.5 py-1.5 my-1.5 border border-[#E5E7EB]"
                   >
                     <option value="">Select Phase</option>
@@ -91,8 +78,13 @@ const AddnewIssuesModal = ({
                     name="name"
                     placeholder="Enter Issue"
                     className="text-gray-600 text-sm px-1.5 py-1.5 my-1.5 border border-[#E5E7EB]"
-                    value={newIssue.name}
-                    onChange={handleChange}
+                    value={editIssueData?.name}
+                    onChange={(e) =>
+                      setEditingData((prev) => ({
+                        ...prev!,
+                        name: e.target.value,
+                      }))
+                    }
                   />
                 </div>
               </div>
@@ -103,35 +95,48 @@ const AddnewIssuesModal = ({
                 <textarea
                   name="description"
                   placeholder="Mismatch in issue number"
-                  className="text-gray-600 text-sm px-1.5 py-1.5 my-1.5 h-20 border border-[#E5E7EB]"
-                  value={newIssue.description}
-                  onChange={handleChange}
+                  className="text-gray-600 text-sm px-1.5 py-1.5 my-1.5 h-20 border border-[#E5E7EB] resize-none"
+                  value={editIssueData?.description}
+                  onChange={(e) =>
+                    setEditingData((prev) => ({
+                      ...prev!,
+                      description: e.target.value,
+                    }))
+                  }
                 />
               </div>
+              <div className="flex flex-col gap-2">
+                <label htmlFor="severity">
+                  Severity<span className="text-red-500"> *</span>
+                </label>
+                <select
+                  name="severity"
+                  onChange={(e) =>
+                    setEditingData((prev) => ({
+                      ...prev!,
+                      name: e.target.value,
+                    }))
+                  }
+                  value={editIssueData?.severity}
+                  className="text-gray-600 text-sm px-1.5 py-1.5 my-1.5 border border-[#E5E7EB]"
+                >
+                  <option value="">Select Severity</option>
+                  <option value="Informational">Informational</option>
+                  <option value="Warning">Warning</option>
+                  <option value="Critical">Critical</option>
+                </select>
+              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center justify-between w-full my-5">
+              {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center justify-between w-full my-5">
                 <div className="flex flex-col gap-2">
                   <h3>Add Media</h3>
                   <input
                     type="file"
                     name="documents"
                     multiple
-                    accept="image/*"
-                    onChange={handleImageChange}
+                    onChange={handleChange}
                     className="text-sm"
                   />
-                  {uploadedFiles.length > 0 && (
-                    <div className="mt-4">
-                      <h3 className="mb-2">Files to be uploaded:</h3>
-                      <div className="grid grid-cols-3 gap-2">
-                        {uploadedFiles.map((file, index) => (
-                          <div key={index} className="text-sm">
-                            {file.name}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
                 <div className="flex flex-col gap-2">
                   <label htmlFor="severity">
@@ -149,7 +154,7 @@ const AddnewIssuesModal = ({
                     <option value="Critical">Critical</option>
                   </select>
                 </div>
-              </div>
+              </div> */}
             </div>
 
             <div className="flex items-end gap-5 justify-end mt-6">
@@ -159,27 +164,28 @@ const AddnewIssuesModal = ({
                 buttonType="default"
                 type="button"
                 size="small"
-                action={() => setIssueDetailsOpen(false)}
+                action={handleModalEditClose}
                 className="gap-2 border border-black text-xs px-[50px] md:text-sm text-black"
               />
 
               <Button
-                text={isSubmitting ? 'Proceeding...' : 'Proceed'}
+                text={'Proceed'}
                 shade="dark"
+                loadingText="please wait..."
                 buttonType="primary"
-                isLoading={isSubmitting}
-                type="submit"
+                type="button"
                 size="small"
-                action={handleSubmit}
-                disabled={isSubmitting}
-                className="gap-2 border bg-black text-xs px-[50px] md:text-sm text-white"
+                action={handleUpdateIssue}
+                disabled={isEditingSubmitting}
+                isLoading={isEditingSubmitting}
+                className="gap-2 border text-white text-xs px-[50px] md:text-sm bg-black"
               />
             </div>
-          </form>
+          </div>
         )}
       </Modal>
     </>
   )
 }
 
-export default AddnewIssuesModal
+export default EditIssueModal

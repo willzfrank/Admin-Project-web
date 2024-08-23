@@ -12,6 +12,8 @@ import ProjectManagement from './page/project-management/page'
 import CompanyManagement from './page/company-management/CompanyManagement'
 import CompanyDetailsPage from './page/company-management/slug/CompanyDetails'
 import ProjectDetailsPage from './page/project-management/slug/ProjectDetailsPage'
+import IssueDetails from './page/issue-management/slug/IssueDetails'
+import PhasesManagement from './page/phases-management/page'
 
 
 function App() {
@@ -64,10 +66,26 @@ function App() {
           }
         />
         <Route
+          path="/issue-management/:IssueId"
+          element={
+            <ProtectedRoute>
+              <IssueDetails />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/project-management"
           element={
             <ProtectedRoute>
               <ProjectManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/phases-management"
+          element={
+            <ProtectedRoute>
+              <PhasesManagement />
             </ProtectedRoute>
           }
         />

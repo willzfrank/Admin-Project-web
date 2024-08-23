@@ -1,17 +1,17 @@
 import { useEffect, useState } from 'react'
 import axiosInstance from '../../components/util/AxiosInstance'
-import IssueManagementContent from './IssueManagementContent'
-import { Issue } from '../../types/global'
+import { Phase } from '../../types/global'
 import SidebarLayout from '../../layouts/Sidebar'
+import PhasesManagementContent from './PhasesManagementContent'
 
-const IssueManagement = () => {
-  const [data, setData] = useState<Issue[]>([])
+const PhasesManagement = () => {
+  const [data, setData] = useState<Phase[]>([])
   const [loading, setLoading] = useState(true)
 
-  const fetchIssues = async () => {
+  const fetchData = async () => {
     setLoading(true)
     try {
-      const response = await axiosInstance.get(`/Issues/ViewAll`)
+      const response = await axiosInstance.get(`/Phases/ViewAll`)
       setData(response?.data?.data)
     } catch (error) {
       console.error('Error fetching issues:', error)
@@ -21,16 +21,14 @@ const IssueManagement = () => {
   }
 
   useEffect(() => {
-    fetchIssues()
+    fetchData()
   }, [])
 
   return (
     <SidebarLayout>
-      <IssueManagementContent data={data} isLoading={loading}
-      fetchIssues={fetchIssues}
-      />
+      <PhasesManagementContent data={data} isLoading={loading} />
     </SidebarLayout>
   )
 }
 
-export default IssueManagement
+export default PhasesManagement
