@@ -146,7 +146,7 @@ const CompanyDetails = () => {
 
   return (
     <SidebarLayout>
-      <div className="px-4 md:px-20">
+      <div className="px-4">
         <BackArrow
           handleBackButton={handleBackButton}
           ripplePosition={ripplePosition}
@@ -173,7 +173,7 @@ const CompanyDetails = () => {
                 <Table
                   columns={columns}
                   dataSource={data}
-                  pagination={{ position: ['bottomRight'], pageSize: 5 }}
+                  pagination={{ position: ['bottomRight'], pageSize: 100 }}
                 />
               </div>
             )}

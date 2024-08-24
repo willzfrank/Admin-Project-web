@@ -77,14 +77,6 @@ const IssueManagementContent: React.FC<IssueManagementContentProps> = ({
     documents: [] as File[],
   })
 
-  useEffect(() => {
-    const authDataString = localStorage.getItem(USER_KEY)
-    if (authDataString) {
-      const authData = JSON.parse(authDataString)
-      setUserId(authData.id)
-    }
-  }, [])
-
   const { handleBackButton, ripplePosition } = useBackButton()
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
 
@@ -161,9 +153,7 @@ const IssueManagementContent: React.FC<IssueManagementContentProps> = ({
       if (response.status === 200) {
         toast.success('Issue closed successfully')
         setIsResolveModalOpen(false)
-        setTimeout(() => {
-          window.location.reload()
-        }, 2000)
+        fetchIssues()
       }
     } catch (error) {
       toast.error('Failed to close the issue. Please try again.')
@@ -373,15 +363,11 @@ const IssueManagementContent: React.FC<IssueManagementContentProps> = ({
     formData.append('Kind', 'Issue')
 
     try {
-      const response = await axiosInstance.post(
-        'https://api.buildsense.ng/api/v1/Documents/Upload',
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      )
+      const response = await axiosInstance.post('/Documents/Upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
 
       if (response.data.status) {
         return response.data.data.id
@@ -397,6 +383,14 @@ const IssueManagementContent: React.FC<IssueManagementContentProps> = ({
       fetchPhases()
     }
   }, [issueDetailsOpen, issueEditOpen])
+
+  useEffect(() => {
+    const authDataString = localStorage.getItem(USER_KEY)
+    if (authDataString) {
+      const authData = JSON.parse(authDataString)
+      setUserId(authData.id)
+    }
+  }, [])
 
   return (
     <div className="px-4">

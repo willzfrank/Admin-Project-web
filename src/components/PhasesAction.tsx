@@ -8,6 +8,7 @@ type PhasesActionProps = {
   phasesStatus: ProjectStatusType
   handleResolvePhase: () => void
   handlePhaseDetails: () => void
+  handleEditPhases: () => void
 }
 
 const reopenPhase = async (PhaseId: string) => {
@@ -32,10 +33,14 @@ const PhasesAction: React.FC<PhasesActionProps> = ({
   phasesStatus,
   handleResolvePhase,
   handlePhaseDetails,
+  handleEditPhases,
 }) => {
   return (
     <div className="items-center flex justify-center flex-col">
-      <span className="w-max cursor-pointer hover:underline text-[#547575]">
+      <span
+        className="w-max cursor-pointer hover:underline text-[#547575]"
+        onClick={handleEditPhases}
+      >
         Edit
       </span>
       {phasesStatus === 'Done' && (
@@ -43,7 +48,7 @@ const PhasesAction: React.FC<PhasesActionProps> = ({
           className="text-amber-700 cursor-pointer hover:underline"
           onClick={async () => await reopenPhase(PhaseId)}
         >
-          Reopen
+          ReOpen
         </span>
       )}
       <span
@@ -53,14 +58,14 @@ const PhasesAction: React.FC<PhasesActionProps> = ({
         More Details
       </span>
       <div className="cursor-pointer hover:underline">
-        <Link to={`/phase-management/${PhaseId}`}>View history</Link>
+        <Link to={`/phases-management/${PhaseId}`}>View history</Link>
       </div>
       {['Todo', 'InProgress', 'OnHold'].includes(phasesStatus) && (
         <span
           className="text-[#3235ff] cursor-pointer w-max hover:underline"
           onClick={handleResolvePhase}
         >
-          Mark as resolved
+          Mark as completed
         </span>
       )}
     </div>

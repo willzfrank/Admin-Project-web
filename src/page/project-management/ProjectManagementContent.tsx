@@ -353,7 +353,7 @@ const ProjectManagementContent: React.FC<Props> = ({
             <Table
               columns={columns}
               dataSource={data}
-              pagination={{ position: ['bottomRight'], pageSize: 10 }}
+              pagination={{ position: ['bottomRight'], pageSize: 100 }}
               scroll={{ x: 800 }}
             />
           </div>

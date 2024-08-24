@@ -3,35 +3,30 @@ import { Table, Spin } from 'antd'
 import toast from 'react-hot-toast'
 import { SortOrder } from 'antd/lib/table/interface'
 import { LoadingOutlined } from '@ant-design/icons'
-import { Issue, IssueStatusType, Phase, ProjectStatusType, SeverityType } from '../../types/global'
+import {
+  Issue,
+  ProjectData,
+  Phase,
+  ProjectStatusType,
+} from '../../types/global'
 import { formatDate } from '../../components/util/formatdate'
 import axiosInstance from '../../components/util/AxiosInstance'
 import Button from '../../components/commons/Button'
 import Modal from '../../components/Modals/Modal'
 import BackArrow from '../../components/commons/BackArrow'
-import IssueActions from '../../components/IssueAction'
 import { useBackButton } from '../../Hooks/useBackButton'
-import AddnewIssuesModal from '../../components/Modals/Issues/AddNewIssuesModal'
-import IssueDetailsModal from '../../components/Modals/Issues/IssueDetailsModal'
 import PhasesAction from '../../components/PhasesAction'
 import { getStatusClass } from '../../components/util/getStatusClassName'
+import AddnewPhaseModal from '../../components/Modals/phase/AddNewPhaseModal'
+import { USER_KEY } from '../../components/util/constant'
+import { v4 as uuidv4 } from 'uuid'
+import EditPhaseModal from '../../components/Modals/phase/EditPhaseModal'
+import PhaseDetailsModal from '../../components/Modals/phase/PhaseDetailsModal'
 
 interface Props {
   data: Phase[]
   isLoading: boolean
-}
-
-const getSeverityClass = (severity: SeverityType): string => {
-  switch (severity) {
-    case 'Informational':
-      return 'text-black'
-    case 'Warning':
-      return 'text-orange-500'
-    case 'Critical':
-      return 'text-red-500'
-    default:
-      return 'text-black-200'
-  }
+  fetchPhasesData: () => Promise<void>
 }
 
 // const getStatusClass = (status: IssueStatusType): string => {
@@ -45,57 +40,63 @@ const getSeverityClass = (severity: SeverityType): string => {
 //   }
 // }
 
-const PhasesManagementContent: React.FC<Props> = ({ data, isLoading }) => {
+const PhasesManagementContent: React.FC<Props> = ({
+  data,
+  isLoading,
+  fetchPhasesData,
+}) => {
   const [isResolveModalOpen, setIsResolveModalOpen] = useState(false)
   const [isModalDetailsOpen, setIsModalDetailsOpen] = useState(false)
   const [isClosedLoading, setIsClosedLoading] = useState(false)
+  const [phaseEditOpen, setPhaseEditOpen] = useState<boolean>(false)
 
   const [selectedPhaseId, setSelectedPhaseId] = useState<string | null>(null)
   const [selectedCode, setSelectedCode] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [issueDetails, setIssueDetails] = useState<Issue>()
-  const [issueDetailsOpen, setIssueDetailsOpen] = useState<boolean>(false)
+  const [phaseDetails, setPhaseDetails] = useState<Phase>()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isFetchPhaseLoading, setIsFetchPhaseLoading] = useState(false)
+  const [isFetchProjectLoading, setIsFetchProjectLoading] = useState(false)
+  const [phaseModalOpen, setPhaseModalOpen] = useState(false)
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
+  const [userId, setUserId] = useState<string | null>(null)
+  const [editIngPhaseData, setEditingPhaseData] = useState<Phase>()
+  const [isEditingSubmitting, setIsEditingSubmitting] = useState(false)
 
-  const [phases, setPhases] = useState<Phase[]>([])
-  const [newIssue, setNewIssue] = useState({
+  const [projects, setProjects] = useState<ProjectData[]>([])
+  const [newPhase, setNewPhase] = useState({
     name: '',
     description: '',
-    phaseId: '',
-    severity: '',
+    projectId: '',
+    status: '',
     documents: [] as File[],
   })
 
   const { handleBackButton, ripplePosition } = useBackButton()
 
-  const fetchPhases = async () => {
-    setIsFetchPhaseLoading(true)
+  const fetchProjects = async () => {
+    setIsFetchProjectLoading(true)
     try {
-      const response = await axiosInstance.get<{ data: Phase[] }>(
-        '/Phases/ViewAll'
+      const response = await axiosInstance.get<{ data: ProjectData[] }>(
+        '/Projects/ViewAll'
       )
-      setPhases(response?.data?.data)
+      setProjects(response?.data?.data)
     } catch (error) {
       console.error('Error fetching phases:', error)
       toast.error('Failed to fetch phases. Please try again.')
     } finally {
-      setIsFetchPhaseLoading(false)
+      setIsFetchProjectLoading(false)
     }
   }
 
   const handleChange = (e: { target: { name: string; value: string } }) => {
-    setNewIssue({
-      ...newIssue,
+    setNewPhase({
+      ...newPhase,
       [e.target.name]: e.target.value,
     })
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewIssue({
-      ...newIssue,
-      documents: Array.from(e.target.files || []), // Convert FileList to array
-    })
+  const handleFileChange = (files: File[]) => {
+    setUploadedFiles(files)
   }
 
   const handleResolvePhase = (PhaseId: string) => {
@@ -119,7 +120,19 @@ const PhasesManagementContent: React.FC<Props> = ({ data, isLoading }) => {
   const handleModalDetailsClose = () => {
     setIsModalDetailsOpen(false)
     setSelectedCode(null)
-    setIssueDetails(undefined)
+    setPhaseDetails(undefined)
+  }
+
+  const handleModalEditClose = () => {
+    setPhaseEditOpen(false)
+  }
+
+  const handleEditPhase = (id: string) => {
+    setPhaseEditOpen(true)
+    const phaseToEdit = data.find((phase) => phase.id === id)
+    if (phaseToEdit) {
+      setEditingPhaseData(phaseToEdit)
+    }
   }
 
   const handleClosePhase = async () => {
@@ -131,14 +144,12 @@ const PhasesManagementContent: React.FC<Props> = ({ data, isLoading }) => {
       )
 
       if (response.status === 200) {
-        toast.success('Issue closed successfully')
+        toast.success('Phase closed successfully')
         setIsResolveModalOpen(false)
-        setTimeout(() => {
-          window.location.reload()
-        }, 2000)
+        fetchPhasesData()
       }
     } catch (error) {
-      toast.error('Failed to close the issue. Please try again.')
+      toast.error('Failed to close the phase. Please try again.')
     } finally {
       setIsClosedLoading(false)
     }
@@ -147,8 +158,8 @@ const PhasesManagementContent: React.FC<Props> = ({ data, isLoading }) => {
   const fetchData = async (code: string) => {
     try {
       setIsClosedLoading(true)
-      const response = await axiosInstance.get(`/Issues/GetByCode?code=${code}`)
-      setIssueDetails(response.data.data)
+      const response = await axiosInstance.get(`/Phases/GetByCode?code=${code}`)
+      setPhaseDetails(response.data.data)
     } catch (error) {
       toast.error('Failed to fetch data. Please try again.')
       setError('Failed to fetch activity log. Please try again later.')
@@ -165,7 +176,7 @@ const PhasesManagementContent: React.FC<Props> = ({ data, isLoading }) => {
       sorter: (a: Phase, b: Phase) => a.createdAt.localeCompare(b.createdAt),
       sortDirections: ['ascend', 'descend'] as SortOrder[],
       render: (text: string) => (
-        <span className="text-xs py-4 px-6 flex items-end justify-end font-medium">
+        <span className="text-xs py-4 px-6 flex items-center justify-center font-medium">
           {formatDate(text)}
         </span>
       ),
@@ -178,7 +189,9 @@ const PhasesManagementContent: React.FC<Props> = ({ data, isLoading }) => {
         (a?.name || '').localeCompare(b?.name || ''),
       sortDirections: ['ascend', 'descend'] as SortOrder[],
       render: (text: string) => (
-        <span className="text-xs py-4 px-6 font-medium">{text || 'N/A'}</span>
+        <span className="text-xs py-4 flex px-6 items-center justify-center font-medium">
+          {text || 'N/A'}
+        </span>
       ),
     },
     {
@@ -190,7 +203,7 @@ const PhasesManagementContent: React.FC<Props> = ({ data, isLoading }) => {
         (a.company?.name || 'N/A').localeCompare(b.company?.name || 'N/A'),
       sortDirections: ['ascend', 'descend'] as SortOrder[],
       render: (text: string) => (
-        <span className="text-xs py-4 flex items-end justify-end px-6 font-medium">
+        <span className="text-xs py-4 flex items-center justify-center  px-6 font-medium">
           {text || 'N/A'}
         </span>
       ),
@@ -221,25 +234,56 @@ const PhasesManagementContent: React.FC<Props> = ({ data, isLoading }) => {
             phasesStatus={record.status}
             handleResolvePhase={() => handleResolvePhase(record.id)}
             handlePhaseDetails={() => handlePhaseDetails(record.code)}
+            handleEditPhases={() => {
+              handleEditPhase(record.id)
+            }}
           />
         </span>
       ),
     },
   ]
 
+  const uploadFile = async (file: File): Promise<string | undefined> => {
+    if (!userId) {
+      toast.error('User not found. Please log in again.')
+      return
+    }
+    const formData = new FormData()
+    formData.append('Id', uuidv4())
+    formData.append('File', file)
+    formData.append('UserId', userId)
+    formData.append('Kind', 'Phase')
+
+    try {
+      const response = await axiosInstance.post('/Documents/Upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+
+      if (response.data.status) {
+        return response.data.data.id
+      }
+    } catch (error) {
+      console.error('Error uploading file:', error)
+      toast.error(`Failed to upload ${file.name}`)
+    }
+  }
+
   const validateForm = () => {
-    const { name, description, phaseId, severity } = newIssue
-    return name && description && phaseId && severity
+    const { name, description, status } = newPhase
+    return name && description && status
   }
 
   const clearForm = () => {
-    setNewIssue({
+    setNewPhase({
       name: '',
       description: '',
-      phaseId: '',
-      severity: '',
+      projectId: '',
+      status: '',
       documents: [],
     })
+    setUploadedFiles([])
   }
 
   const handleSubmit = async () => {
@@ -251,36 +295,85 @@ const PhasesManagementContent: React.FC<Props> = ({ data, isLoading }) => {
     setIsSubmitting(true)
 
     try {
-      const { name, description, phaseId, severity, documents } = newIssue
+      const { name, description, status, projectId } = newPhase
+
+      let documentIds: string[] = []
+
+      // Only upload documents if there are any
+      if (uploadedFiles.length > 0) {
+        const uploadPromises = uploadedFiles.map((file) => uploadFile(file))
+        const uploadResults = await Promise.all(uploadPromises)
+        documentIds = uploadResults.filter(
+          (id): id is string => id !== undefined
+        )
+      }
 
       // Create an object with the form data
-      const issueData = {
+      const phaseData = {
         name,
         description,
-        phaseId,
-        severity,
-        documents: documents.map((file) => file.name),
+        status,
+        projectId,
+        documents: documentIds,
       }
 
       // Send the data as JSON
-      const response = await axiosInstance.post('/Issues/Create', issueData)
+      const response = await axiosInstance.post('/Phases/Create', phaseData)
 
-      if (response.status === 201) {
-        toast.success('Issue created successfully')
+      if (response.status === 201 || 200) {
+        toast.success('Phase created successfully')
         clearForm()
+        setPhaseModalOpen(false)
+        fetchPhasesData()
       }
     } catch (error) {
-      toast.error('Failed to create the issue. Please try again.')
+      toast.error('Failed to create the phase. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  useEffect(() => {
-    if (issueDetailsOpen) {
-      fetchPhases()
+  const handleUpdatePhase = async () => {
+    if (!setEditingPhaseData) return
+
+    setIsEditingSubmitting(true)
+    try {
+      const response = await axiosInstance.post('/Phases/Update', {
+        id: editIngPhaseData?.id,
+        name: editIngPhaseData?.name,
+        description: editIngPhaseData?.description,
+        projectId: editIngPhaseData?.projectId,
+        status: editIngPhaseData?.status,
+        documents: [],
+      })
+
+      if (response.status === 200 || 201) {
+        toast.success('Phase updated successfully')
+        setPhaseEditOpen(false)
+        fetchPhasesData()
+      } else {
+        toast.error('Failed to update phase')
+      }
+    } catch (error) {
+      toast.error('Error updating phase')
+    } finally {
+      setIsEditingSubmitting(false)
     }
-  }, [issueDetailsOpen])
+  }
+
+  useEffect(() => {
+    if (phaseModalOpen || phaseEditOpen) {
+      fetchProjects()
+    }
+  }, [phaseModalOpen, phaseEditOpen])
+
+  useEffect(() => {
+    const authDataString = localStorage.getItem(USER_KEY)
+    if (authDataString) {
+      const authData = JSON.parse(authDataString)
+      setUserId(authData.id)
+    }
+  }, [])
 
   return (
     <div className="px-4">
@@ -292,7 +385,7 @@ const PhasesManagementContent: React.FC<Props> = ({ data, isLoading }) => {
         />
         <div
           className="px-5 py-2.5 mb-5 border  cursor-pointer"
-          onClick={() => setIssueDetailsOpen(true)}
+          onClick={() => setPhaseModalOpen(true)}
         >
           Add New Phase
         </div>
@@ -315,7 +408,7 @@ const PhasesManagementContent: React.FC<Props> = ({ data, isLoading }) => {
             <Table
               columns={columns}
               dataSource={data}
-              pagination={{ position: ['bottomRight'], pageSize: 10 }}
+              pagination={{ position: ['bottomRight'], pageSize: 100 }}
               scroll={{ x: 800 }}
             />
           </div>
@@ -348,148 +441,39 @@ const PhasesManagementContent: React.FC<Props> = ({ data, isLoading }) => {
         </div>
       </Modal>
 
-      <IssueDetailsModal
+      <PhaseDetailsModal
         handleModalDetailsClose={handleModalDetailsClose}
         isModalDetailsOpen={isModalDetailsOpen}
         isClosedLoading={isClosedLoading}
-        issueDetails={issueDetails}
+        phaseDetails={phaseDetails}
       />
 
       {/* EDIT */}
 
-      <Modal
-        isOpen={issueDetailsOpen}
-        onClose={() => setIssueDetailsOpen(false)}
-      >
-        {isFetchPhaseLoading ? (
-          <div className="flex items-center justify-center">
-            <Spin
-              indicator={<LoadingOutlined spin />}
-              className="text-black"
-              size="large"
-            />
-          </div>
-        ) : (
-          <div>
-            <h2 className="text-left md:text-base text-sm mb-5 md:mb-10">
-              Edit Issue
-            </h2>
+      <EditPhaseModal
+        phaseEditOpen={phaseEditOpen}
+        handleModalEditClose={handleModalEditClose}
+        setPhaseEditOpen={setPhaseEditOpen}
+        isFetchProjectLoading={isFetchProjectLoading}
+        setEditingPhaseData={setEditingPhaseData}
+        editIngPhaseData={editIngPhaseData}
+        projects={projects}
+        handleUpdatePhase={handleUpdatePhase}
+        isEditingSubmitting={isEditingSubmitting}
+      />
 
-            <div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 md:gap-6 items-center justify-between w-full my-2.5 md:my-5">
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="phase">
-                    Phase<span className="text-red-500"> *</span>
-                  </label>
-                  <select
-                    name="phaseId"
-                    onChange={handleChange}
-                    value={newIssue.phaseId}
-                    className="text-gray-600 text-sm px-2.5 py-1.5 my-1.5 border border-[#E5E7EB]"
-                  >
-                    <option value="">Select Phase</option>
-                    {phases.map((phase) => (
-                      <option key={phase.id} value={phase.id}>
-                        {phase.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="phase">
-                    Issue<span className="text-red-500"> *</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    placeholder="Enter Issue"
-                    className="text-gray-600 text-sm px-1.5 py-1.5 my-1.5 border border-[#E5E7EB]"
-                    value={newIssue.name}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-              <div className="flex flex-col gap-2">
-                <label htmlFor="description">
-                  Description<span className="text-red-500"> *</span>
-                </label>
-                <textarea
-                  name="description"
-                  placeholder="Mismatch in issue number"
-                  className="text-gray-600 text-sm px-1.5 py-1.5 my-1.5 h-20 border border-[#E5E7EB]"
-                  value={newIssue.description}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center justify-between w-full my-5">
-                <div className="flex flex-col gap-2">
-                  <h3>Add Media</h3>
-                  <input
-                    type="file"
-                    name="documents"
-                    multiple
-                    onChange={handleChange}
-                    className="text-sm"
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="severity">
-                    Severity<span className="text-red-500"> *</span>
-                  </label>
-                  <select
-                    name="severity"
-                    onChange={handleChange}
-                    value={newIssue.severity}
-                    className="text-gray-600 text-sm px-1.5 py-1.5 my-1.5 border border-[#E5E7EB]"
-                  >
-                    <option value="">Select Severity</option>
-                    <option value="Informational">Informational</option>
-                    <option value="Warning">Warning</option>
-                    <option value="Critical">Critical</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-end gap-5 justify-end mt-6">
-              <Button
-                text="Close"
-                shade="dark"
-                buttonType="default"
-                type="button"
-                size="small"
-                action={handleModalDetailsClose}
-                className="gap-2 border border-black text-xs px-12 md:text-sm text-black"
-              />
-
-              <Button
-                text={isSubmitting ? 'Submitting...' : 'Submit'}
-                shade="dark"
-                buttonType="default"
-                type="button"
-                size="small"
-                action={handleSubmit}
-                disabled={isSubmitting}
-                className="gap-2 border border-black text-xs px-12 md:text-sm text-black"
-              />
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      {/* <AddnewIssuesModal
-        issueDetailsOpen={issueDetailsOpen}
-        setIssueDetailsOpen={setIssueDetailsOpen}
+      <AddnewPhaseModal
+        phaseModalOpen={phaseModalOpen}
+        setPhaseModalOpen={setPhaseModalOpen}
         handleChange={handleChange}
-        newIssue={newIssue}
-        phases={phases}
-        handleModalDetailsClose={handleModalDetailsClose}
+        newPhase={newPhase}
         handleSubmit={handleSubmit}
         isSubmitting={isSubmitting}
         handleFileChange={handleFileChange}
-        isFetchPhaseLoading={isFetchPhaseLoading}
-      /> */}
+        projects={projects}
+        uploadedFiles={uploadedFiles}
+        isFetchProjectLoading={isFetchProjectLoading}
+      />
     </div>
   )
 }

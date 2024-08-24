@@ -8,7 +8,7 @@ const PhasesManagement = () => {
   const [data, setData] = useState<Phase[]>([])
   const [loading, setLoading] = useState(true)
 
-  const fetchData = async () => {
+  const fetchPhasesData = async () => {
     setLoading(true)
     try {
       const response = await axiosInstance.get(`/Phases/ViewAll`)
@@ -21,12 +21,16 @@ const PhasesManagement = () => {
   }
 
   useEffect(() => {
-    fetchData()
+    fetchPhasesData()
   }, [])
 
   return (
     <SidebarLayout>
-      <PhasesManagementContent data={data} isLoading={loading} />
+      <PhasesManagementContent
+        data={data}
+        isLoading={loading}
+        fetchPhasesData={fetchPhasesData}
+      />
     </SidebarLayout>
   )
 }

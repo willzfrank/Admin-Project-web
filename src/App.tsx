@@ -14,6 +14,7 @@ import CompanyDetailsPage from './page/company-management/slug/CompanyDetails'
 import ProjectDetailsPage from './page/project-management/slug/ProjectDetailsPage'
 import IssueDetails from './page/issue-management/slug/IssueDetails'
 import PhasesManagement from './page/phases-management/page'
+import PhaseDetails from './page/phases-management/slug/PhaseDetails'
 
 
 function App() {
@@ -86,6 +87,14 @@ function App() {
           element={
             <ProtectedRoute>
               <PhasesManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/phases-management/:phaseId"
+          element={
+            <ProtectedRoute>
+              <PhaseDetails />
             </ProtectedRoute>
           }
         />

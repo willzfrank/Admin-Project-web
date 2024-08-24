@@ -1,36 +1,36 @@
 import Modal from '../Modal'
 import { LoadingOutlined } from '@ant-design/icons'
 import { Spin } from 'antd'
-import { Issue, Phase, SeverityType } from '../../../types/global'
+import { Issue, Phase, ProjectData, ProjectStatusType } from '../../../types/global'
 import Button from '../../commons/Button'
 
-type EditIssueModalProps = {
-  issueEditOpen: boolean
-  setIssueEditOpen: React.Dispatch<React.SetStateAction<boolean>>
-  isFetchPhaseLoading: boolean
-  setEditingData: React.Dispatch<React.SetStateAction<Issue | undefined>>
-  editIssueData: Issue | undefined
-  phases: Phase[]
+type EditPhaseModalProps = {
+  phaseEditOpen: boolean
+  setPhaseEditOpen: React.Dispatch<React.SetStateAction<boolean>>
+  isFetchProjectLoading: boolean
+  setEditingPhaseData: React.Dispatch<React.SetStateAction<Phase | undefined>>
+  editIngPhaseData: Phase | undefined
+  projects: ProjectData[]
   handleModalEditClose: () => void
-  handleUpdateIssue: () => Promise<void>
+  handleUpdatePhase: () => Promise<void>
   isEditingSubmitting: boolean
 }
 
-const EditIssueModal = ({
-  issueEditOpen,
-  setIssueEditOpen,
-  isFetchPhaseLoading,
-  setEditingData,
-  editIssueData,
-  phases,
+const EditPhaseModal = ({
+  phaseEditOpen,
+  setPhaseEditOpen,
+  isFetchProjectLoading,
+  setEditingPhaseData,
+  editIngPhaseData,
+  projects,
   handleModalEditClose,
-  handleUpdateIssue,
+  handleUpdatePhase,
   isEditingSubmitting,
-}: EditIssueModalProps) => {
+}: EditPhaseModalProps) => {
   return (
     <>
-      <Modal isOpen={issueEditOpen} onClose={() => setIssueEditOpen(false)}>
-        {isFetchPhaseLoading ? (
+      <Modal isOpen={phaseEditOpen} onClose={() => setPhaseEditOpen(false)}>
+        {isFetchProjectLoading ? (
           <div className="flex items-center justify-center">
             <Spin
               indicator={<LoadingOutlined spin />}
@@ -41,46 +41,46 @@ const EditIssueModal = ({
         ) : (
           <div>
             <h2 className="text-left md:text-base text-sm mb-5 md:mb-10">
-              Edit Issue
+              Edit Phase
             </h2>
 
             <div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 md:gap-6 items-center justify-between w-full my-2.5 md:my-5">
                 <div className="flex flex-col gap-2">
                   <label htmlFor="phase">
-                    Phase<span className="text-red-500"> *</span>
+                    Project<span className="text-red-500"> *</span>
                   </label>
                   <select
-                    name="phaseId"
+                    name="projectId"
                     onChange={(e) =>
-                      setEditingData((prev) => ({
+                      setEditingPhaseData((prev) => ({
                         ...prev!,
-                        phaseId: e.target.value,
+                        projectId: e.target.value,
                       }))
                     }
-                    value={editIssueData?.phaseId}
+                    value={editIngPhaseData?.projectId}
                     className="text-gray-600 text-sm px-2.5 py-1.5 my-1.5 border border-[#E5E7EB]"
                   >
-                    <option value="">Select Phase</option>
-                    {phases.map((phase) => (
-                      <option key={phase.id} value={phase.id}>
-                        {phase.name}
+                    <option value="">Select Project</option>
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div className="flex flex-col gap-2">
                   <label htmlFor="phase">
-                    Issue<span className="text-red-500"> *</span>
+                    Name<span className="text-red-500"> *</span>
                   </label>
                   <input
                     type="text"
                     name="name"
-                    placeholder="Enter Issue"
+                    placeholder="Enter Phase"
                     className="text-gray-600 text-sm px-1.5 py-1.5 my-1.5 border border-[#E5E7EB]"
-                    value={editIssueData?.name}
+                    value={editIngPhaseData?.name}
                     onChange={(e) =>
-                      setEditingData((prev) => ({
+                      setEditingPhaseData((prev) => ({
                         ...prev!,
                         name: e.target.value,
                       }))
@@ -96,9 +96,9 @@ const EditIssueModal = ({
                   name="description"
                   placeholder="Mismatch in issue number"
                   className="text-gray-600 text-sm px-1.5 py-1.5 my-1.5 h-20 border border-[#E5E7EB] resize-none"
-                  value={editIssueData?.description}
+                  value={editIngPhaseData?.description}
                   onChange={(e) =>
-                    setEditingData((prev) => ({
+                    setEditingPhaseData((prev) => ({
                       ...prev!,
                       description: e.target.value,
                     }))
@@ -106,27 +106,28 @@ const EditIssueModal = ({
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <label htmlFor="severity">
-                  Severity<span className="text-red-500"> *</span>
+                <label htmlFor="status">
+                  Status<span className="text-red-500"> *</span>
                 </label>
                 <select
-                  name="severity"
+                  name="status"
                   onChange={(e) =>
-                    setEditingData((prev) => {
-                      if (!prev) return undefined
-                      return {
-                        ...prev,
-                        severity: e.target.value as SeverityType,
-                      }
-                    })
+                    setEditingPhaseData((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            status: e.target.value as ProjectStatusType,
+                          }
+                        : undefined
+                    )
                   }
-                  value={editIssueData?.severity}
+                  value={editIngPhaseData?.status}
                   className="text-gray-600 text-sm px-1.5 py-1.5 my-1.5 border border-[#E5E7EB]"
                 >
-                  <option value="">Select Severity</option>
-                  <option value="Informational">Informational</option>
-                  <option value="Warning">Warning</option>
-                  <option value="Critical">Critical</option>
+                  <option value="Todo">Todo</option>
+                  <option value="InProgress">In Progress</option>
+                  <option value="OnHold">On Hold</option>
+                  <option value="Done">Done</option>
                 </select>
               </div>
             </div>
@@ -149,7 +150,7 @@ const EditIssueModal = ({
                 buttonType="primary"
                 type="button"
                 size="small"
-                action={handleUpdateIssue}
+                action={handleUpdatePhase}
                 disabled={isEditingSubmitting}
                 isLoading={isEditingSubmitting}
                 className="gap-2 border text-white text-xs px-[50px] md:text-sm bg-black"
@@ -162,4 +163,4 @@ const EditIssueModal = ({
   )
 }
 
-export default EditIssueModal
+export default EditPhaseModal

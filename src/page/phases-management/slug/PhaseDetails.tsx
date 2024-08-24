@@ -12,7 +12,7 @@ import SidebarLayout from '../../../layouts/Sidebar'
 
 const { Text } = Typography
 
-const ProjectDetailsPage = () => {
+const PhaseDetails = () => {
   const [data, setData] = useState<ActivityLogEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -20,15 +20,15 @@ const ProjectDetailsPage = () => {
     key: keyof ActivityLogEntry
     direction: 'asc' | 'desc'
   } | null>(null)
-  const { projectId } = useParams<{ projectId: string }>()
+  const { phaseId } = useParams<{ phaseId: string }>()
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true)
       try {
-        if (projectId) {
+        if (phaseId) {
           const response = await axiosInstance.get(
-            `/Changes/GetByProject?ProjectId=${projectId}`
+            `/Changes/GetByPhase?phaseId=${phaseId}`
           )
           setData(response?.data?.data || [])
         }
@@ -41,7 +41,7 @@ const ProjectDetailsPage = () => {
     }
 
     fetchData()
-  }, [projectId])
+  }, [phaseId])
 
   const { handleBackButton, ripplePosition } = useBackButton()
 
@@ -146,40 +146,42 @@ const ProjectDetailsPage = () => {
 
   return (
     <SidebarLayout>
-    <div className="px-4">
-      <BackArrow
-        handleBackButton={handleBackButton}
-        ripplePosition={ripplePosition}
-        title="Project History"
-      />
-      <div className="bg-gray-200 w-full md:p-8 md:pb-0 mx-auto">
-        <div className="w-full">
-          {isLoading ? (
-            <div className="flex items-center justify-center">
-              <Spin
-                indicator={<LoadingOutlined spin />}
-                className="text-black"
-                size="large"
-              />
-            </div>
-          ) : error ? (
-            <p className="text-red-500 text-center">{error}</p>
-          ) : data.length === 0 ? (
-            <p className="text-center">No history log found for this project.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table
-                columns={columns}
-                dataSource={data}
-                pagination={{ position: ['bottomRight'], pageSize: 100 }}
-              />
-            </div>
-          )}
+      <div className="px-4">
+        <BackArrow
+          handleBackButton={handleBackButton}
+          ripplePosition={ripplePosition}
+          title="Phase History"
+        />
+        <div className="bg-gray-200 w-full md:p-8 md:pb-0 mx-auto">
+          <div className="w-full">
+            {isLoading ? (
+              <div className="flex items-center justify-center">
+                <Spin
+                  indicator={<LoadingOutlined spin />}
+                  className="text-black"
+                  size="large"
+                />
+              </div>
+            ) : error ? (
+              <p className="text-red-500 text-center">{error}</p>
+            ) : data.length === 0 ? (
+              <p className="text-center">
+                No history log found for this Phase.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table
+                  columns={columns}
+                  dataSource={data}
+                  pagination={{ position: ['bottomRight'], pageSize: 100 }}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
     </SidebarLayout>
   )
 }
 
-export default ProjectDetailsPage
+export default PhaseDetails
