@@ -1,14 +1,11 @@
-import React, { ChangeEvent, useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Table, Spin } from 'antd'
 import toast from 'react-hot-toast'
 import { SortOrder } from 'antd/lib/table/interface'
 import { LoadingOutlined } from '@ant-design/icons'
 import {
-  ProjectData,
-  NewProjectData,
-  ProjectStatusType,
+ 
   UserData,
-  statusType,
 } from '../../types/global'
 import { formatDate } from '../../components/util/formatdate'
 import axiosInstance from '../../components/util/AxiosInstance'
@@ -16,16 +13,11 @@ import Button from '../../components/commons/Button'
 import Modal from '../../components/Modals/Modal'
 import BackArrow from '../../components/commons/BackArrow'
 import { useBackButton } from '../../Hooks/useBackButton'
-import ProjectAction from '../../components/ProjectAction'
-import CreateProjectModal from '../../components/Modals/projects/CreateProjectModal'
-import EditProjectModal from '../../components/Modals/projects/EditProjectModal'
-import { getStatusClass } from '../../components/util/getStatusClassName'
-import { v4 as uuidv4 } from 'uuid'
-import { USER_KEY } from '../../components/util/constant'
-import { Form, FormInstance } from 'antd'
+import { Form } from 'antd'
 import AddUserModal from '../../components/Modals/user/AddUserModal'
 import EditUserModal from '../../components/Modals/user/EditUserFormModal'
 import UserAction from '../../components/UserAction'
+import UserPermissionsModal from '../../components/Modals/user/UserPermissionModal'
 
 interface Props {
   data: UserData[]
@@ -51,6 +43,12 @@ const UserManagementContent: React.FC<Props> = ({
   const [isEditSubmitting, setIsEditSubmitting] = useState(false)
   const [roles, setRoles] = useState<{ id: string; name: string }[]>([])
   const [isViewOnly, setIsViewOnly] = useState(false)
+  const [isPermissionsModalVisible, setIsPermissionsModalVisible] =
+    useState(false)
+  const [permissionsOptions, setPermissionsOptions] = useState<string[]>([])
+  const [isUpdatingPermissions, setIsUpdatingPermissions] = useState(false)
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const [selectedUser, setSelectedUser] = useState<UserData | null>(null)
 
   interface FormValues {
     userName: string
@@ -66,12 +64,72 @@ const UserManagementContent: React.FC<Props> = ({
 
   const [form] = Form.useForm<FormValues>()
   const [editForm] = Form.useForm()
+  const [permissionsForm] = Form.useForm()
 
   const { handleBackButton, ripplePosition } = useBackButton()
 
   const statusColors = {
     active: '#3d2fff',
     inactive: '#a92f30',
+  }
+
+  const fetchPermissions = async () => {
+    try {
+      const response = await axiosInstance.get('/Claims/List')
+      if (response.data.status) {
+        setPermissionsOptions(response.data.data)
+      } else {
+        toast.error('Failed to fetch permissions')
+      }
+    } catch (error) {
+      console.error('Error fetching permissions:', error)
+      toast.error('An error occurred while fetching permissions')
+    }
+  }
+
+  const handleExtraPermissions = (userId: string) => {
+    const user = data.find((u) => u.id === userId)
+    if (user) {
+      console.log('user', user)
+
+      setSelectedUser(user)
+      setSelectedUserId(userId)
+      setIsPermissionsModalVisible(true)
+      fetchPermissions()
+    } else {
+      toast.error('User not found')
+    }
+  }
+
+  const handlePermissionsOk = async () => {
+    if (!selectedUserId) return
+
+    setIsUpdatingPermissions(true)
+    try {
+      const values = await permissionsForm.validateFields()
+      const response = await axiosInstance.post('/Claims/AddToUser', {
+        userId: selectedUserId,
+        claims: values.permissions,
+      })
+
+      if (response.data.status) {
+        toast.success('Permissions updated successfully')
+        setIsPermissionsModalVisible(false)
+        permissionsForm.resetFields()
+      } else {
+        toast.error('Failed to update permissions')
+      }
+    } catch (error) {
+      console.error('Error updating permissions:', error)
+      toast.error('An error occurred while updating permissions')
+    } finally {
+      setIsUpdatingPermissions(false)
+    }
+  }
+
+  const handlePermissionsCancel = () => {
+    setIsPermissionsModalVisible(false)
+    permissionsForm.resetFields()
   }
 
   const fetchCompanies = async () => {
@@ -90,11 +148,6 @@ const UserManagementContent: React.FC<Props> = ({
     } finally {
       setIsFetchCompanyLoading(false)
     }
-  }
-
-  const handleExtraPermissions = (userId: string) => {
-    // Implement extra permissions logic here
-    console.log('Extra permissions for user:', userId)
   }
 
   const handleToggleUserStatus = async (
@@ -118,10 +171,7 @@ const UserManagementContent: React.FC<Props> = ({
     }
   }
 
-  const handleModalClose = () => {
-    setIsResolveModalOpen(false)
-    setSelectedIssueId(null)
-  }
+ 
 
   const handleUserDetails = (user: UserData) => {
     setEditingUser(user)
@@ -141,25 +191,6 @@ const UserManagementContent: React.FC<Props> = ({
     setIsViewOnly(true)
   }
 
-  const handleCloseIssue = async () => {
-    if (!selectedIssueId) return
-    setIsClosedLoading(true)
-    try {
-      const response = await axiosInstance.get(
-        `/Issues/Close?IssueId=${selectedIssueId}`
-      )
-
-      if (response.status === 200) {
-        toast.success('Issue closed successfully')
-        setIsResolveModalOpen(false)
-        fetchUserData()
-      }
-    } catch (error) {
-      toast.error('Failed to close the issue. Please try again.')
-    } finally {
-      setIsClosedLoading(false)
-    }
-  }
 
   const fetchRoles = async () => {
     try {
@@ -350,6 +381,14 @@ const UserManagementContent: React.FC<Props> = ({
     }
   }, [userModalOpen])
 
+  //   useEffect(() => {
+  //     const authDataString = localStorage.getItem(USER_KEY)
+  //     if (authDataString) {
+  //       const authData = JSON.parse(authDataString)
+  //       setUserId(authData.id)
+  //     }
+  //   }, [])
+
   return (
     <div className="px-4">
       <div className="flex items-center justify-between w-full cursor-pointer">
@@ -390,31 +429,18 @@ const UserManagementContent: React.FC<Props> = ({
         )}
       </div>
 
-      <Modal isOpen={isResolveModalOpen} onClose={handleModalClose}>
-        <p className="text-center md:text-base text-sm">
-          Are you sure you want to mark this as resolved?
-        </p>
-        <div className="flex items-center justify-center gap-10 mt-10">
-          <Button
-            text="No, Go Back"
-            shade="dark"
-            buttonType="default"
-            type="button"
-            size="small"
-            action={handleModalClose}
-            className="gap-2 border border-black text-xs md:text-sm text-black w-max"
-          />
-          <Button
-            text={isClosedLoading ? 'Processing...' : 'Yes, Proceed'}
-            buttonType="secondary"
-            isLoading={isClosedLoading}
-            type="button"
-            action={handleCloseIssue}
-            size="small"
-            className="w-max gap-2 bg-black text-xs md:text-sm text-white"
-          />
-        </div>
-      </Modal>
+     
+
+      {/* EXTRA PERMISSIONS */}
+      <UserPermissionsModal
+        visible={isPermissionsModalVisible}
+        onOk={handlePermissionsOk}
+        onCancel={handlePermissionsCancel}
+        form={permissionsForm}
+        permissionsOptions={permissionsOptions}
+        isUpdatingPermissions={isUpdatingPermissions}
+        user={selectedUser}
+      />
 
       {/* ADD NEW USER */}
 

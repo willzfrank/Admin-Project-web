@@ -23,12 +23,12 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
   isEditingUser,
   isViewOnly,
 }) => {
+  const handleOk = () => {
+    form.validateFields().then((values: any) => {
+      onOk(values)
+    })
+  }
 
-   const handleOk = () => {
-     form.validateFields().then((values: any) => {
-       onOk(values)
-     })
-   }
   return (
     <Modal
       title={isViewOnly ? 'User Details' : 'Edit User'}

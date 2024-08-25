@@ -52,7 +52,7 @@ const ProjectAction: React.FC<ProjectActionsProps> = ({
   return (
     <div className="items-center flex justify-center flex-col">
       <span
-        className="w-max cursor-pointer hover:underline"
+        className="w-max text-[#35799c] cursor-pointer hover:underline"
         onClick={handleEditProject}
       >
         Edit

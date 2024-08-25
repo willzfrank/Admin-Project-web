@@ -38,7 +38,7 @@ const PhasesAction: React.FC<PhasesActionProps> = ({
   return (
     <div className="items-center flex justify-center flex-col">
       <span
-        className="w-max cursor-pointer hover:underline text-[#547575]"
+        className="w-max cursor-pointer hover:underline text-[#35799c]"
         onClick={handleEditPhases}
       >
         Edit

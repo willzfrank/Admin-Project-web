@@ -1,23 +1,28 @@
 import React from 'react'
-import { Modal, Form, Input, Select } from 'antd'
+import { Modal, Form, Select, Input } from 'antd'
+import { UserData } from '../../../types/global'
 
-interface PermissionsModalProps {
+interface UserPermissionsModalProps {
   visible: boolean
   onOk: () => void
   onCancel: () => void
   form: any
-  permissionsOptions: { value: string; label: string }[]
+  permissionsOptions: string[]
   isUpdatingPermissions: boolean
+  user: UserData | null
 }
 
-const UserPermissionsModal: React.FC<PermissionsModalProps> = ({
+const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
   visible,
   onOk,
   onCancel,
   form,
   permissionsOptions,
   isUpdatingPermissions,
+  user,
 }) => {
+  const fullName = user ? `${user.firstName} ${user.lastName}`.trim() : ''
+
   return (
     <Modal
       title="User Permissions"
@@ -25,7 +30,6 @@ const UserPermissionsModal: React.FC<PermissionsModalProps> = ({
       onOk={onOk}
       onCancel={onCancel}
       okText={isUpdatingPermissions ? 'Updating...' : 'Update'}
-      cancelText="Cancel"
       okButtonProps={{
         loading: isUpdatingPermissions,
         disabled: isUpdatingPermissions,
@@ -47,24 +51,32 @@ const UserPermissionsModal: React.FC<PermissionsModalProps> = ({
         },
       }}
     >
-      <Form layout="vertical" form={form}>
-        <Form.Item
-          name="userName"
-          label="User Name"
-          rules={[{ required: true, message: 'Please enter the user name' }]}
-        >
-          <Input placeholder="User Name" disabled />
+      <Form form={form} layout="vertical">
+        <Form.Item name="fullName" label="User Name">
+          <Input value={fullName} disabled placeholder={fullName} />
         </Form.Item>
         <Form.Item
           name="permissions"
           label="Permissions"
-          rules={[{ required: true, message: 'Please select permissions' }]}
+          rules={[
+            {
+              required: true,
+              message: 'Please select at least one permission',
+            },
+          ]}
         >
           <Select
             mode="multiple"
-            options={permissionsOptions}
-            placeholder="Select Permissions"
-          />
+            style={{ width: '100%' }}
+            placeholder="Select permissions"
+            optionFilterProp="children"
+          >
+            {permissionsOptions.map((permission) => (
+              <Select.Option key={permission} value={permission}>
+                {permission}
+              </Select.Option>
+            ))}
+          </Select>
         </Form.Item>
       </Form>
     </Modal>

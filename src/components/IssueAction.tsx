@@ -37,7 +37,7 @@ const IssueActions: React.FC<IssueActionsProps> = ({
   return (
     <div className="items-center flex justify-center flex-col">
       <span
-        className="w-max cursor-pointer hover:underline"
+        className="w-max cursor-pointer hover:underline text-[#35799c]"
         onClick={handleEditIssues}
       >
         Edit
