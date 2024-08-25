@@ -24,6 +24,8 @@ import { v4 as uuidv4 } from 'uuid'
 import { USER_KEY } from '../../components/util/constant'
 import { Form, FormInstance } from 'antd'
 import AddUserModal from '../../components/Modals/user/AddUserModal'
+import EditUserModal from '../../components/Modals/user/EditUserFormModal'
+import UserAction from '../../components/UserAction'
 
 interface Props {
   data: UserData[]
@@ -37,28 +39,18 @@ const UserManagementContent: React.FC<Props> = ({
   fetchUserData,
 }) => {
   const [isResolveModalOpen, setIsResolveModalOpen] = useState(false)
-  const [isModalDetailsOpen, setIsModalDetailsOpen] = useState(false)
   const [isClosedLoading, setIsClosedLoading] = useState(false)
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null)
-  const [selectedCode, setSelectedCode] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [projectDetails, setProjectDetails] = useState<ProjectData>()
   const [userModalOpen, setUserModalOpen] = useState<boolean>(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isFetchCompanyLoading, setIsFetchCompanyLoading] = useState(false)
   const [companies, setCompanies] = useState<{ id: string; name: string }[]>([])
-  const [editingProject, setEditingProject] = useState<ProjectData | null>(null)
+  const [editingUser, setEditingUser] = useState<UserData | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isEditSubmitting, setIsEditSubmitting] = useState(false)
   const [roles, setRoles] = useState<{ id: string; name: string }[]>([])
-  const [userId, setUserId] = useState<string | null>(null)
-  const [newProject, setNewProject] = useState<NewProjectData>({
-    name: '',
-    description: '',
-    status: 'Todo',
-    companyId: '',
-    documents: [],
-  })
+  const [isViewOnly, setIsViewOnly] = useState(false)
 
   interface FormValues {
     userName: string
@@ -73,6 +65,7 @@ const UserManagementContent: React.FC<Props> = ({
   }
 
   const [form] = Form.useForm<FormValues>()
+  const [editForm] = Form.useForm()
 
   const { handleBackButton, ripplePosition } = useBackButton()
 
@@ -99,31 +92,30 @@ const UserManagementContent: React.FC<Props> = ({
     }
   }
 
-  //   const handleEditProject = (id: string) => {
-  //     setIsEditModalOpen(true)
-  //     fetchCompanies()
-
-  //     const projectToEdit = data.find((project) => project.id === id)
-  //     if (projectToEdit) {
-  //       setEditingProject({
-  //         ...projectToEdit,
-  //       })
-  //     } else {
-  //       toast.error('Project not found.')
-  //       setIsEditModalOpen(false)
-  //     }
-  //   }
-
-  const handleEditInputChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target
-    setEditingProject((prev) => (prev ? { ...prev, [name]: value } : null))
+  const handleExtraPermissions = (userId: string) => {
+    // Implement extra permissions logic here
+    console.log('Extra permissions for user:', userId)
   }
 
-  const handleResolveIssue = (issueId: string) => {
-    setIsResolveModalOpen(true)
-    setSelectedIssueId(issueId)
+  const handleToggleUserStatus = async (
+    userId: string,
+    currentStatus: boolean
+  ) => {
+    try {
+      const response = await axiosInstance.get(
+        `/Users/Status/Toggle?UserId=${userId}`
+      )
+
+      if (response.status === 200) {
+        toast.success(
+          `User ${currentStatus ? 'deactivated' : 'activated'} successfully`
+        )
+        fetchUserData()
+      }
+    } catch (error) {
+      console.error('Error toggling user status:', error)
+      toast.error('Failed to toggle user status. Please try again.')
+    }
   }
 
   const handleModalClose = () => {
@@ -131,18 +123,22 @@ const UserManagementContent: React.FC<Props> = ({
     setSelectedIssueId(null)
   }
 
-  const handleProjectDetails = (code: string) => {
-    setIsModalDetailsOpen(true)
-    setSelectedCode(code)
-    if (code) {
-      fetchData(code)
-    }
-  }
-
-  const handleModalDetailsClose = () => {
-    setIsModalDetailsOpen(false)
-    setSelectedCode(null)
-    setProjectDetails(undefined)
+  const handleUserDetails = (user: UserData) => {
+    setEditingUser(user)
+    setIsEditModalOpen(true)
+    fetchCompanies()
+    editForm.setFieldsValue({
+      userName: user.userName,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      phoneNumber: user.phoneNumber,
+      email: user.email,
+      gender: user.gender,
+      roleName: user.roleName,
+      companyId: user.companyId,
+    })
+    // Set isViewOnly to true for user details view
+    setIsViewOnly(true)
   }
 
   const handleCloseIssue = async () => {
@@ -160,21 +156,6 @@ const UserManagementContent: React.FC<Props> = ({
       }
     } catch (error) {
       toast.error('Failed to close the issue. Please try again.')
-    } finally {
-      setIsClosedLoading(false)
-    }
-  }
-
-  const fetchData = async (code: string) => {
-    try {
-      setIsClosedLoading(true)
-      const response = await axiosInstance.get(
-        `/Projects/GetByCode?code=${code}`
-      )
-      setProjectDetails(response.data.data)
-    } catch (error) {
-      toast.error('Failed to fetch data. Please try again.')
-      setError('Failed to fetch activity log. Please try again later.')
     } finally {
       setIsClosedLoading(false)
     }
@@ -279,16 +260,16 @@ const UserManagementContent: React.FC<Props> = ({
       key: 'action',
       render: (record: UserData) => (
         <span className="text-xs py-4 p-6 font-medium flex items-center justify-center">
-          {/* <UserAction
-            projectId={record.id}
-            status={record.status}
-            handleResolveIssue={() => handleResolveIssue(record.id)}
-            handleProjectDetails={() => handleProjectDetails(record.code)}
-            handleEditProject={() => {
-              handleEditProject(record.id)
-            }}
-            refreshData={fetchUserData}
-          /> */}
+          <UserAction
+            userId={record.id}
+            userStatus={record.isActive ? 'Active' : 'Inactive'}
+            handleEditUser={() => handleEditUser(record)}
+            handleUserDetails={() => handleUserDetails(record)}
+            handleExtraPermissions={() => handleExtraPermissions(record.id)}
+            handleToggleUserStatus={() =>
+              handleToggleUserStatus(record.id, record.isActive)
+            }
+          />
         </span>
       ),
     },
@@ -325,39 +306,39 @@ const UserManagementContent: React.FC<Props> = ({
     }
   }
 
-  const isEditFormValid = (): boolean => {
-    return editingProject
-      ? editingProject.name.trim() !== '' &&
-          editingProject.description.trim() !== '' &&
-          editingProject.companyId.trim() !== ''
-      : false
+  const handleEditUser = (user: UserData) => {
+    setEditingUser(user)
+    setIsEditModalOpen(true)
+    fetchCompanies()
+    editForm.setFieldsValue({
+      userName: user.userName,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      phoneNumber: user.phoneNumber,
+      email: user.email,
+      gender: user.gender,
+      roleName: user.roleName,
+      companyId: user.companyId,
+    })
+
+    setIsViewOnly(false)
   }
 
-  const handleUpdate = async () => {
-    if (!isEditFormValid()) {
-      toast.error('Please fill in all required fields.')
-      return
-    }
-
+  const handleUpdateUser = async (values: any) => {
     setIsEditSubmitting(true)
     try {
-      const response = await axiosInstance.post('/Projects/Update', {
-        id: editingProject?.id,
-        name: editingProject?.name,
-        description: editingProject?.description,
-        status: editingProject?.status,
-        companyId: editingProject?.companyId,
-        documents: [],
+      const response = await axiosInstance.post('/Users/Update', {
+        ...values,
+        id: editingUser?.id,
       })
-      console.log('Project updated:', response.data)
-      toast.success('Project updated successfully')
-      setIsEditModalOpen(false)
-      setTimeout(() => {
+      if (response.status === 200) {
+        toast.success('User updated successfully')
+        setIsEditModalOpen(false)
         fetchUserData()
-      }, 1000)
+      }
     } catch (error) {
-      console.error('Error updating project:', error)
-      toast.error('Failed to update project. Please try again.')
+      console.error('Error updating user:', error)
+      toast.error('Failed to update user. Please try again.')
     } finally {
       setIsEditSubmitting(false)
     }
@@ -369,27 +350,19 @@ const UserManagementContent: React.FC<Props> = ({
     }
   }, [userModalOpen])
 
-  useEffect(() => {
-    const authDataString = localStorage.getItem(USER_KEY)
-    if (authDataString) {
-      const authData = JSON.parse(authDataString)
-      setUserId(authData.id)
-    }
-  }, [])
-
   return (
     <div className="px-4">
       <div className="flex items-center justify-between w-full cursor-pointer">
         <BackArrow
           handleBackButton={handleBackButton}
           ripplePosition={ripplePosition}
-          title="Project Management"
+          title="User Management"
         />
         <div
           className="px-5 py-2.5 mb-5 border"
           onClick={() => setUserModalOpen(true)}
         >
-          Add New Project
+          Add New User
         </div>
       </div>
       <div className="bg-gray-200 w-full md:p-8 p-4 pb-2 mx-auto">
@@ -402,7 +375,7 @@ const UserManagementContent: React.FC<Props> = ({
             />
           </div>
         ) : data.length === 0 ? (
-          <p className="text-center text-gray-600 py-8">No projects found.</p>
+          <p className="text-center text-gray-600 py-8">No users found.</p>
         ) : error ? (
           <p className="text-red-500 text-center">{error}</p>
         ) : (
@@ -443,116 +416,6 @@ const UserManagementContent: React.FC<Props> = ({
         </div>
       </Modal>
 
-      <Modal isOpen={isModalDetailsOpen} onClose={handleModalDetailsClose}>
-        {isClosedLoading ? (
-          <div className="flex items-center justify-center">
-            <Spin
-              indicator={<LoadingOutlined spin />}
-              className="text-black"
-              size="large"
-            />
-          </div>
-        ) : (
-          <div>
-            <h2 className="text-left md:text-base text-sm font-bold mb-5 md:mb-10">
-              Project Details
-            </h2>
-
-            <div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 md:gap-6 items-center justify-between w-full my-2.5 md:my-5">
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="phase">
-                    Company<span className="text-red-500"> *</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Plumbing"
-                    className="text-gray-600 text-sm px-2.5 py-1.5 my-1.5 border border-[#E5E7EB] cursor-not-allowed outline-none"
-                    value={projectDetails?.company?.name || ''}
-                    readOnly
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="phase">
-                    Name<span className="text-red-500"> *</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Invalid configuration"
-                    className="text-gray-600 text-sm px-1.5 py-1.5 my-1.5 border border-[#E5E7EB] cursor-not-allowed outline-none"
-                    value={projectDetails?.name}
-                    readOnly
-                  />
-                </div>
-              </div>
-              <div className="flex flex-col gap-2">
-                <label htmlFor="description">
-                  Description<span className="text-red-500"> *</span>
-                </label>
-                <textarea
-                  placeholder="Mismatch in issue number"
-                  className="text-gray-600 text-sm px-1.5 py-1.5 my-1.5 h-20 border border-[#E5E7EB] cursor-not-allowed outline-none resize-none"
-                  value={projectDetails?.description}
-                  readOnly
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center justify-between w-full my-5">
-                {/* <div className="flex flex-col gap-2">
-                  <h3>Media</h3>
-                  <div className="flex flex-col gap-2">
-                    <div className="grid grid-cols-2">
-                      <Link
-                        className="text-xs text-blue-800"
-                        target="_blank"
-                        to={`https://example.com`}
-                      >
-                        IMG-001.PNG
-                      </Link>
-                      <div className="text-xs text-red-600">Delete</div>
-                    </div>
-                    <div className="grid grid-cols-2">
-                      <Link
-                        className="text-xs text-blue-800"
-                        target="_blank"
-                        to={`https://example.com`}
-                      >
-                        IMG-002.PNG
-                      </Link>
-                      <div className="text-xs text-red-600">Delete</div>
-                    </div>
-                  </div>
-                </div> */}
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="severity">
-                    Status<span className="text-red-500"> *</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Informational"
-                    className="text-gray-600 text-sm px-1.5 py-1.5 my-1.5 border border-[#E5E7EB] cursor-not-allowed outline-none"
-                    value={projectDetails?.status}
-                    readOnly
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-end justify-end mt-6">
-              <Button
-                text="Close"
-                shade="dark"
-                buttonType="default"
-                type="button"
-                size="small"
-                action={handleModalDetailsClose}
-                className="gap-2 border border-black text-xs px-[50px] md:text-sm text-black"
-              />
-            </div>
-          </div>
-        )}
-      </Modal>
-
       {/* ADD NEW USER */}
 
       <AddUserModal
@@ -566,15 +429,16 @@ const UserManagementContent: React.FC<Props> = ({
       />
 
       {/* EDIT PROJECT */}
-      <EditProjectModal
+
+      <EditUserModal
         isEditModalOpen={isEditModalOpen}
+        onOk={handleUpdateUser}
         setIsEditModalOpen={setIsEditModalOpen}
-        handleEditInputChange={handleEditInputChange}
-        editingProject={editingProject}
+        form={editForm}
         companies={companies}
-        isEditSubmitting={isEditSubmitting}
-        handleUpdate={handleUpdate}
-        isFetchCompanyLoading={isFetchCompanyLoading}
+        roles={roles}
+        isEditingUser={isEditSubmitting}
+        isViewOnly={isViewOnly}
       />
     </div>
   )

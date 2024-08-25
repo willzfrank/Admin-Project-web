@@ -20,6 +20,8 @@ export interface UserData {
   isActive: boolean
   createdAt: string
   permissions?: string[]
+  gender?: string
+  userName?: string
 }
 
 export type TaskStatusType = 'Todo' | 'InProgress' | 'OnHold' | 'Done'
@@ -86,8 +88,8 @@ export interface ProjectData extends NewProjectData {
   creator: string | null
   supervisor: string | null
   company: {
-    code: string,
-    name:string,
+    code: string
+    name: string
   }
   id: string
   createdAt: string

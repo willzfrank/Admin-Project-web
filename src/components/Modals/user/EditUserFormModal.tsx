@@ -1,34 +1,40 @@
 import React from 'react'
 import { Modal, Form, Input, Select, Row, Col } from 'antd'
-import { CompanyData } from '../../types/global'
+import { CompanyData } from '../../../types/global'
 
 interface EditUserModalProps {
-  visible: boolean
-  onOk: () => void
-  onCancel: () => void
+  isEditModalOpen: boolean
+  onOk: (values: any) => void
+  setIsEditModalOpen: React.Dispatch<React.SetStateAction<boolean>>
   form: any
   companies: CompanyData[]
-  roles: string[]
+  roles: { id: string; name: string }[]
   isEditingUser: boolean
-  isViewOnly: boolean // New prop to determine if it's view-only mode
+  isViewOnly: boolean
 }
 
 const EditUserModal: React.FC<EditUserModalProps> = ({
-  visible,
+  isEditModalOpen,
   onOk,
-  onCancel,
+  setIsEditModalOpen,
   form,
   companies,
   roles,
   isEditingUser,
   isViewOnly,
 }) => {
+
+   const handleOk = () => {
+     form.validateFields().then((values: any) => {
+       onOk(values)
+     })
+   }
   return (
     <Modal
       title={isViewOnly ? 'User Details' : 'Edit User'}
-      visible={visible}
-      onOk={onOk}
-      onCancel={onCancel}
+      visible={isEditModalOpen}
+      onOk={handleOk}
+      onCancel={() => setIsEditModalOpen(false)}
       okText={isViewOnly ? 'Close' : isEditingUser ? 'Saving...' : 'Save'}
       cancelText={isViewOnly ? undefined : 'Cancel'}
       okButtonProps={{
@@ -108,11 +114,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
         </Row>
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item
-              name="companyId"
-              label="Company"
-             
-            >
+            <Form.Item name="companyId" label="Company">
               <Select disabled={isViewOnly}>
                 {companies.map((company) => (
                   <Select.Option key={company.id} value={company.id}>
@@ -130,8 +132,8 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
             >
               <Select disabled={isViewOnly}>
                 {roles.map((role) => (
-                  <Select.Option key={role} value={role}>
-                    {role}
+                  <Select.Option key={role.id} value={role.name}>
+                    {role.name}
                   </Select.Option>
                 ))}
               </Select>

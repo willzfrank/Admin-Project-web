@@ -1,63 +1,79 @@
+import React from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import axiosInstance from './util/AxiosInstance'
 
 type UserActionProps = {
-  issueId: string
-  issueStatus: 'Unresolved' | 'Resolved'
-  handleResolveIssue: () => void
-  handleIssueDetails: () => void
-  handleEditIssues: () => void
+  userId: string
+  userStatus: 'Active' | 'Inactive'
+  handleEditUser: () => void
+  handleUserDetails: () => void
+  handleExtraPermissions: () => void
+  handleToggleUserStatus: () => void
 }
 
-const reopenIssue = async (issueId: string) => {
+const toggleUserStatus = async (
+  userId: string,
+  currentStatus: 'Active' | 'Inactive'
+) => {
   try {
-    const response = await axiosInstance.get(
-      `/Issues/Reopen?IssueId=${issueId}`
-    )
+    const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active'
+    const response = await axiosInstance.post(`/Users/ToggleStatus`, {
+      userId: userId,
+      status: newStatus,
+    })
 
     if (response.status === 200) {
-      toast.success('Issue reopened successfully')
+      toast.success(`User ${newStatus.toLowerCase()} successfully`)
       setTimeout(() => {
         window.location.reload()
       }, 2000)
     }
   } catch (error) {
-    toast.error('Failed to reopen issue. Please try again.')
+    toast.error(
+      `Failed to ${
+        currentStatus === 'Active' ? 'deactivate' : 'activate'
+      } user. Please try again.`
+    )
   }
 }
 
 const UserAction: React.FC<UserActionProps> = ({
-  issueId,
-  issueStatus,
-  handleResolveIssue,
-  handleIssueDetails,
-  handleEditIssues,
+  userId,
+  userStatus,
+  handleEditUser,
+  handleUserDetails,
+  handleExtraPermissions,
+  handleToggleUserStatus,
 }) => {
   return (
     <div className="items-center flex justify-center flex-col">
       <span
         className="w-max cursor-pointer hover:underline"
-        onClick={handleEditIssues}
+        onClick={handleEditUser}
       >
         Edit
       </span>
 
       <span
         className="w-max cursor-pointer hover:underline"
-        onClick={handleIssueDetails}
+        onClick={handleUserDetails}
       >
         More Details
       </span>
 
       <span
         className="text-blue-500 cursor-pointer w-max hover:underline"
-        onClick={handleResolveIssue}
+        onClick={handleExtraPermissions}
       >
         Extra Permissions
       </span>
-      <span className="text-blue-500 cursor-pointer w-max hover:underline">
-        Enable{' '}
+
+      <span
+        className="text-blue-500 cursor-pointer w-max hover:underline"
+        onClick={handleToggleUserStatus}
+      >
+        {userStatus === 'Active' ? 'Disable' : 'Enable'}
       </span>
     </div>
   )
