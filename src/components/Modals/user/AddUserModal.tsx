@@ -1,37 +1,37 @@
 import React from 'react'
 import { Modal, Form, Input, Select, Row, Col } from 'antd'
-import { CompanyData } from '../../types/global'
+import { CompanyData } from '../../../types/global'
 
 interface AddUserModalProps {
-  visible: boolean
-  onOk: () => void
-  onCancel: () => void
+  userModalOpen: boolean
+  setUserModalOpen: React.Dispatch<React.SetStateAction<boolean>>
   form: any
   companies: CompanyData[]
-  roles: string[]
-  isAddingUser: boolean
+  roles: { id: string; name: string }[]
+  isSubmitting: boolean
+  handleAddUser: () => void
 }
 
 const AddUserModal: React.FC<AddUserModalProps> = ({
-  visible,
-  onOk,
-  onCancel,
+  userModalOpen,
+  setUserModalOpen,
   form,
   companies,
+  handleAddUser,
   roles,
-  isAddingUser,
+  isSubmitting,
 }) => {
   return (
     <Modal
       title="Create User"
-      visible={visible}
-      onOk={onOk}
-      onCancel={onCancel}
-      okText={isAddingUser ? 'Proceeding...' : 'Proceed'}
+      visible={userModalOpen}
+      onOk={handleAddUser}
+      onCancel={() => setUserModalOpen(false)}
+      okText={isSubmitting ? 'Proceeding...' : 'Proceed'}
       cancelText="Close"
       okButtonProps={{
-        disabled: isAddingUser,
-        loading: isAddingUser,
+        disabled: isSubmitting,
+        loading: isSubmitting,
         style: {
           backgroundColor: 'black',
           borderColor: 'black',
@@ -42,7 +42,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
         },
       }}
       cancelButtonProps={{
-        disabled: isAddingUser,
+        disabled: isSubmitting,
         style: {
           borderColor: 'black',
           paddingLeft: '25px',
@@ -82,10 +82,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
               name="email"
               label="Email Address"
               rules={[
-                {
-                  required: true,
-                  message: 'Please input the email address!',
-                },
+                { required: true, message: 'Please input the email address!' },
                 { type: 'email', message: 'Please enter a valid email!' },
               ]}
             >
@@ -97,10 +94,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
               name="phoneNumber"
               label="Phone Number"
               rules={[
-                {
-                  required: true,
-                  message: 'Please input the phone number!',
-                },
+                { required: true, message: 'Please input the phone number!' },
               ]}
             >
               <Input placeholder="07012345678" />
@@ -133,10 +127,48 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
             >
               <Select>
                 {roles.map((role) => (
-                  <Select.Option key={role} value={role}>
-                    {role}
+                  <Select.Option key={role.id} value={role.name}>
+                    {role.name}
                   </Select.Option>
                 ))}
+              </Select>
+            </Form.Item>
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              name="userName"
+              label="Username"
+              rules={[
+                { required: true, message: 'Please input the username!' },
+              ]}
+            >
+              <Input placeholder="johnsnow" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              name="password"
+              label="Password"
+              rules={[
+                { required: true, message: 'Please input the password!' },
+              ]}
+            >
+              <Input.Password placeholder="Enter password" />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              name="gender"
+              label="Gender"
+              rules={[{ required: true, message: 'Please select the gender!' }]}
+            >
+              <Select>
+                <Select.Option value="Male">Male</Select.Option>
+                <Select.Option value="Female">Female</Select.Option>
               </Select>
             </Form.Item>
           </Col>

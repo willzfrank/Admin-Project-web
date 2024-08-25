@@ -85,7 +85,10 @@ export interface ProjectData extends NewProjectData {
   creatorId: string
   creator: string | null
   supervisor: string | null
-  company: string | null
+  company: {
+    code: string,
+    name:string,
+  }
   id: string
   createdAt: string
   updatedAt: string | null

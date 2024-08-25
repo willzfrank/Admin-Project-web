@@ -17,7 +17,9 @@ type CreateProjectModalProps = {
   handleModalDetailsClose: () => void
   companies: { id: string; name: string }[]
   isSubmitting: boolean
-  handleSubmit:()=> void
+  handleSubmit: () => void
+  uploadedFiles: File[]
+  handleFileChange: (files: File[]) => void
 }
 
 const CreateProjectModal = ({
@@ -25,12 +27,20 @@ const CreateProjectModal = ({
   projectModalOpen,
   isFetchCompanyLoading,
   handleInputChange,
+  uploadedFiles,
+  handleFileChange,
   newProject,
   handleModalDetailsClose,
   companies,
   isSubmitting,
-  handleSubmit
+  handleSubmit,
 }: CreateProjectModalProps) => {
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    const imageFiles = files.filter((file) => file.type.startsWith('image/'))
+    handleFileChange(imageFiles)
+  }
+
   return (
     <>
       <Modal
@@ -101,31 +111,26 @@ const CreateProjectModal = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center justify-between w-full my-5">
                 <div className="flex flex-col gap-2">
                   <h3>Add Media</h3>
-
-                  <span>Select media files </span>
-                  {/* make this dynamic if images selected */}
-                  <div className="flex flex-col gap-2">
-                    <div className="grid grid-cols-2">
-                      <Link
-                        className="text-xs text-blue-800"
-                        target="_blank"
-                        to={`https://example.com`}
-                      >
-                        IMG-001.PNG
-                      </Link>
-                      <div className="text-xs text-red-600">Delete</div>
+                  <input
+                    type="file"
+                    name="documents"
+                    multiple
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="text-sm"
+                  />
+                  {uploadedFiles.length > 0 && (
+                    <div className="mt-4">
+                      <h3 className="mb-2">Files to be uploaded:</h3>
+                      <div className="grid grid-cols-3 gap-2">
+                        {uploadedFiles.map((file, index) => (
+                          <div key={index} className="text-sm">
+                            {file.name}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="grid grid-cols-2">
-                      <Link
-                        className="text-xs text-blue-800"
-                        target="_blank"
-                        to={`https://example.com`}
-                      >
-                        IMG-002.PNG
-                      </Link>
-                      <div className="text-xs text-red-600">Delete</div>
-                    </div>
-                  </div>
+                  )}
                 </div>
                 <div className="flex flex-col gap-2">
                   <label htmlFor="severity">

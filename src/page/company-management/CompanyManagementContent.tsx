@@ -166,7 +166,7 @@ const CompanyManagementContent: React.FC<Props> = ({
       sortDirections: ['ascend', 'descend'] as SortOrder[],
       render: (isActive: boolean) => (
         <span
-          className={`py-4 text-xs font-medium px-6 ${
+          className={`py-4 text-xs font-medium flex items-center justify-center px-6 ${
             isActive ? 'text-blue-500' : 'text-amber-700'
           }`}
         >
@@ -197,7 +197,6 @@ const CompanyManagementContent: React.FC<Props> = ({
   const handleSubmit = async () => {
     const { name, namePrefix, description, email, phoneNumber } = newCompany
 
- 
     if (!name || !namePrefix || !description || !email || !phoneNumber) {
       toast.error('All fields are required')
       setIsSubmitting(false)
@@ -249,17 +248,18 @@ const CompanyManagementContent: React.FC<Props> = ({
 
   return (
     <div className="px-4">
-      <BackArrow
-        handleBackButton={handleBackButton}
-        ripplePosition={ripplePosition}
-        title="Company Management"
-      />
-
-      <div
-        className="flex items-end justify-end w-full cursor-pointer"
-        onClick={() => setIsCompanyOpen(true)}
-      >
-        <div className="px-5 py-2.5 mb-5 border">Add New Company</div>
+      <div className="flex items-center justify-between w-full cursor-pointer">
+        <BackArrow
+          handleBackButton={handleBackButton}
+          ripplePosition={ripplePosition}
+          title="Company Management"
+        />
+        <div
+          className="px-5 py-2.5 mb-5 border"
+          onClick={() => setIsCompanyOpen(true)}
+        >
+          Add New Company
+        </div>
       </div>
       <div className="bg-gray-200 w-full md:p-8 p-4 pb-2 mx-auto">
         {isLoading ? (
