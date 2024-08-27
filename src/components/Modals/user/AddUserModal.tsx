@@ -106,9 +106,9 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
             <Form.Item
               name="companyId"
               label="Company"
-              rules={[
-                { required: true, message: 'Please select the company!' },
-              ]}
+              // rules={[
+              //   { required: true, message: 'Please select the company!' },
+              // ]}
             >
               <Select>
                 {companies.map((company) => (
@@ -151,9 +151,9 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
             <Form.Item
               name="password"
               label="Password"
-              rules={[
-                { required: true, message: 'Please input the password!' },
-              ]}
+              // rules={[
+              //   { required: true, message: 'Please input the password!' },
+              // ]}
             >
               <Input.Password placeholder="Enter password" />
             </Form.Item>

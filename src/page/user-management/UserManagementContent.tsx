@@ -3,10 +3,7 @@ import { Table, Spin } from 'antd'
 import toast from 'react-hot-toast'
 import { SortOrder } from 'antd/lib/table/interface'
 import { LoadingOutlined } from '@ant-design/icons'
-import {
- 
-  UserData,
-} from '../../types/global'
+import { UserData } from '../../types/global'
 import { formatDate } from '../../components/util/formatdate'
 import axiosInstance from '../../components/util/AxiosInstance'
 import Button from '../../components/commons/Button'
@@ -49,6 +46,8 @@ const UserManagementContent: React.FC<Props> = ({
   const [isUpdatingPermissions, setIsUpdatingPermissions] = useState(false)
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null)
+   const [isCompaniesLoaded, setIsCompaniesLoaded] = useState(false)
+   const [isRolesLoaded, setIsRolesLoaded] = useState(false)
 
   interface FormValues {
     userName: string
@@ -142,6 +141,7 @@ const UserManagementContent: React.FC<Props> = ({
           name: company.name,
         }))
       )
+      setIsCompaniesLoaded(true)
     } catch (error) {
       console.error('Error fetching companies:', error)
       toast.error('Failed to fetch companies. Please try again.')
@@ -171,8 +171,6 @@ const UserManagementContent: React.FC<Props> = ({
     }
   }
 
- 
-
   const handleUserDetails = (user: UserData) => {
     setEditingUser(user)
     setIsEditModalOpen(true)
@@ -191,12 +189,12 @@ const UserManagementContent: React.FC<Props> = ({
     setIsViewOnly(true)
   }
 
-
   const fetchRoles = async () => {
     try {
       const response = await axiosInstance.get('/Roles/List')
       if (response.data.status) {
         setRoles(response.data.data)
+        setIsRolesLoaded(true)
       } else {
         toast.error('Failed to fetch roles')
       }
@@ -338,21 +336,23 @@ const UserManagementContent: React.FC<Props> = ({
   }
 
   const handleEditUser = (user: UserData) => {
-    setEditingUser(user)
-    setIsEditModalOpen(true)
-    fetchCompanies()
-    editForm.setFieldsValue({
-      userName: user.userName,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      phoneNumber: user.phoneNumber,
-      email: user.email,
-      gender: user.gender,
-      roleName: user.roleName,
-      companyId: user.companyId,
-    })
-
-    setIsViewOnly(false)
+    if (isCompaniesLoaded && isRolesLoaded) {
+      setEditingUser(user)
+      setIsEditModalOpen(true)
+      editForm.setFieldsValue({
+        userName: user.userName,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phoneNumber: user.phoneNumber,
+        email: user.email,
+        gender: user.gender,
+        roleName: user.roleName,
+        companyId: user.companyId,
+      })
+      setIsViewOnly(false)
+    } else {
+      toast.error('Please wait while we fetch necessary data.')
+    }
   }
 
   const handleUpdateUser = async (values: any) => {
@@ -376,18 +376,13 @@ const UserManagementContent: React.FC<Props> = ({
   }
 
   useEffect(() => {
-    if (userModalOpen) {
+    if (userModalOpen || isEditModalOpen) {
+      fetchCompanies()
       fetchRoles()
     }
-  }, [userModalOpen])
+  }, [userModalOpen, isEditModalOpen])
 
-  //   useEffect(() => {
-  //     const authDataString = localStorage.getItem(USER_KEY)
-  //     if (authDataString) {
-  //       const authData = JSON.parse(authDataString)
-  //       setUserId(authData.id)
-  //     }
-  //   }, [])
+ 
 
   return (
     <div className="px-4">
@@ -429,8 +424,6 @@ const UserManagementContent: React.FC<Props> = ({
         )}
       </div>
 
-     
-
       {/* EXTRA PERMISSIONS */}
       <UserPermissionsModal
         visible={isPermissionsModalVisible}
@@ -444,28 +437,32 @@ const UserManagementContent: React.FC<Props> = ({
 
       {/* ADD NEW USER */}
 
-      <AddUserModal
-        userModalOpen={userModalOpen}
-        companies={companies}
-        setUserModalOpen={setUserModalOpen}
-        handleAddUser={handleAddUser}
-        form={form}
-        isSubmitting={isSubmitting}
-        roles={roles}
-      />
+      {isCompaniesLoaded && isRolesLoaded && (
+        <AddUserModal
+          userModalOpen={userModalOpen}
+          companies={companies}
+          setUserModalOpen={setUserModalOpen}
+          handleAddUser={handleAddUser}
+          form={form}
+          isSubmitting={isSubmitting}
+          roles={roles}
+        />
+      )}
 
       {/* EDIT PROJECT */}
 
-      <EditUserModal
-        isEditModalOpen={isEditModalOpen}
-        onOk={handleUpdateUser}
-        setIsEditModalOpen={setIsEditModalOpen}
-        form={editForm}
-        companies={companies}
-        roles={roles}
-        isEditingUser={isEditSubmitting}
-        isViewOnly={isViewOnly}
-      />
+      {isCompaniesLoaded && isRolesLoaded && (
+        <EditUserModal
+          isEditModalOpen={isEditModalOpen}
+          onOk={handleUpdateUser}
+          setIsEditModalOpen={setIsEditModalOpen}
+          form={editForm}
+          companies={companies}
+          roles={roles}
+          isEditingUser={isEditSubmitting}
+          isViewOnly={isViewOnly}
+        />
+      )}
     </div>
   )
 }

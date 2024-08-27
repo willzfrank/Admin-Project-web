@@ -36,7 +36,6 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
       onOk={handleOk}
       onCancel={() => setIsEditModalOpen(false)}
       okText={isViewOnly ? 'Close' : isEditingUser ? 'Saving...' : 'Save'}
-      cancelText={isViewOnly ? undefined : 'Cancel'}
       okButtonProps={{
         loading: isEditingUser,
         disabled: isEditingUser,
@@ -47,6 +46,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
           paddingRight: '25px',
           borderRadius: '0px',
           color: 'white',
+          display: isViewOnly ? 'none' : 'inline-block',
         },
       }}
       cancelButtonProps={{
@@ -55,6 +55,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
           paddingLeft: '25px',
           paddingRight: '25px',
           borderRadius: '0px',
+          display: 'inline-block',
         },
         hidden: isViewOnly,
       }}

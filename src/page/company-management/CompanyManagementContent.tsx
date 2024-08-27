@@ -211,6 +211,7 @@ const CompanyManagementContent: React.FC<Props> = ({
 
       setIsCompanyOpen(false)
       toast.success('Company created successfully')
+      fetchData()
     } catch (error) {
       toast.error('Error creating company')
     } finally {
