@@ -112,7 +112,7 @@ const PermissionModal: React.FC<PermissionModalProps> = ({
             name="permissions"
             label={
               <span>
-                Permissions <span style={{ color: 'red' }}>*</span>
+                Permissions 
               </span>
             }
           >

@@ -63,16 +63,7 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
         <Form.Item name="fullName" label="User Name">
           <Input value={fullName} disabled placeholder={fullName} />
         </Form.Item>
-        <Form.Item
-          name="permissions"
-          label="Permissions"
-          rules={[
-            {
-              required: true,
-              message: 'Please select at least one permission',
-            },
-          ]}
-        >
+        <Form.Item name="permissions" label="Permissions">
           <Select
             mode="multiple"
             style={{ width: '100%' }}
