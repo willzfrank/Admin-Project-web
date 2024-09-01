@@ -46,8 +46,9 @@ const UserManagementContent: React.FC<Props> = ({
   const [isUpdatingPermissions, setIsUpdatingPermissions] = useState(false)
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null)
-   const [isCompaniesLoaded, setIsCompaniesLoaded] = useState(false)
-   const [isRolesLoaded, setIsRolesLoaded] = useState(false)
+  const [isCompaniesLoaded, setIsCompaniesLoaded] = useState(false)
+  const [isRolesLoaded, setIsRolesLoaded] = useState(false)
+  const [userPermissions, setUserPermissions] = useState<string[]>([])
 
   interface FormValues {
     userName: string
@@ -67,11 +68,6 @@ const UserManagementContent: React.FC<Props> = ({
 
   const { handleBackButton, ripplePosition } = useBackButton()
 
-  const statusColors = {
-    active: '#3d2fff',
-    inactive: '#a92f30',
-  }
-
   const fetchPermissions = async () => {
     try {
       const response = await axiosInstance.get('/Claims/List')
@@ -86,19 +82,32 @@ const UserManagementContent: React.FC<Props> = ({
     }
   }
 
-  const handleExtraPermissions = (userId: string) => {
-    const user = data.find((u) => u.id === userId)
-    if (user) {
-      console.log('user', user)
+   const handleExtraPermissions = async (userId: string) => {
+     const user = data.find((u) => u.id === userId)
+     if (user) {
+       setSelectedUser(user)
+       setSelectedUserId(userId)
+       setIsPermissionsModalVisible(true)
+       fetchPermissions()
 
-      setSelectedUser(user)
-      setSelectedUserId(userId)
-      setIsPermissionsModalVisible(true)
-      fetchPermissions()
-    } else {
-      toast.error('User not found')
-    }
-  }
+       try {
+         const response = await axiosInstance.get(
+           `/Claims/GetByUser?userId=${userId}`
+         )
+         if (response.data.status) {
+           setUserPermissions(response.data.data)
+           permissionsForm.setFieldsValue({ permissions: response.data.data })
+         } else {
+           toast.error('Failed to fetch user permissions')
+         }
+       } catch (error) {
+         console.error('Error fetching user permissions:', error)
+         toast.error('An error occurred while fetching user permissions')
+       }
+     } else {
+       toast.error('User not found')
+     }
+   }
 
   const handlePermissionsOk = async () => {
     if (!selectedUserId) return
@@ -185,6 +194,7 @@ const UserManagementContent: React.FC<Props> = ({
       roleName: user.roleName,
       companyId: user.companyId,
     })
+
     // Set isViewOnly to true for user details view
     setIsViewOnly(true)
   }
@@ -239,7 +249,7 @@ const UserManagementContent: React.FC<Props> = ({
       key: 'companyName',
       render: (company: { name: string; code: string }) => (
         <span className="text-xs py-4 px-6 flex items-center justify-center font-medium">
-          {company ? company.name : 'N/A'}
+          {company.name ? company?.name : 'N/A'}
         </span>
       ),
     },
@@ -336,23 +346,19 @@ const UserManagementContent: React.FC<Props> = ({
   }
 
   const handleEditUser = (user: UserData) => {
-    if (isCompaniesLoaded && isRolesLoaded) {
-      setEditingUser(user)
-      setIsEditModalOpen(true)
-      editForm.setFieldsValue({
-        userName: user.userName,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        phoneNumber: user.phoneNumber,
-        email: user.email,
-        gender: user.gender,
-        roleName: user.roleName,
-        companyId: user.companyId,
-      })
-      setIsViewOnly(false)
-    } else {
-      toast.error('Please wait while we fetch necessary data.')
-    }
+    setEditingUser(user)
+    setIsEditModalOpen(true)
+    editForm.setFieldsValue({
+      userName: user.userName,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      phoneNumber: user.phoneNumber,
+      email: user.email,
+      gender: user.gender,
+      roleName: user.roleName,
+      companyId: user.companyId,
+    })
+    setIsViewOnly(false)
   }
 
   const handleUpdateUser = async (values: any) => {
@@ -379,10 +385,9 @@ const UserManagementContent: React.FC<Props> = ({
     if (userModalOpen || isEditModalOpen) {
       fetchCompanies()
       fetchRoles()
+      console.log('fetching')
     }
   }, [userModalOpen, isEditModalOpen])
-
- 
 
   return (
     <div className="px-4">
@@ -433,6 +438,7 @@ const UserManagementContent: React.FC<Props> = ({
         permissionsOptions={permissionsOptions}
         isUpdatingPermissions={isUpdatingPermissions}
         user={selectedUser}
+        userPermissions={userPermissions}
       />
 
       {/* ADD NEW USER */}
@@ -449,7 +455,7 @@ const UserManagementContent: React.FC<Props> = ({
         />
       )}
 
-      {/* EDIT PROJECT */}
+      {/* EDIT User */}
 
       {isCompaniesLoaded && isRolesLoaded && (
         <EditUserModal

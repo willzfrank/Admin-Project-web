@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Modal, Form, Select, Input } from 'antd'
 import { UserData } from '../../../types/global'
 
@@ -10,6 +10,7 @@ interface UserPermissionsModalProps {
   permissionsOptions: string[]
   isUpdatingPermissions: boolean
   user: UserData | null
+  userPermissions: string[]
 }
 
 const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
@@ -20,8 +21,15 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
   permissionsOptions,
   isUpdatingPermissions,
   user,
+  userPermissions,
 }) => {
   const fullName = user ? `${user.firstName} ${user.lastName}`.trim() : ''
+
+  useEffect(() => {
+    if (visible) {
+      form.setFieldsValue({ permissions: userPermissions })
+    }
+  }, [visible, userPermissions, form])
 
   return (
     <Modal

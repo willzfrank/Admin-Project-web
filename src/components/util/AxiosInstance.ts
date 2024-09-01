@@ -91,10 +91,7 @@ function handleAuthError(message: string) {
 }
 
 axiosInstance.isAuthError = (error: any): boolean => {
-  return (
-    error.response &&
-    (error.response.status === 401 || error.response.status === 403)
-  )
+  return error.response && error.response.status === 401
 }
 
 export default axiosInstance
